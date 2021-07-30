@@ -1,16 +1,18 @@
-/* ------------------------------------------------------------------------- 
- * This program is a next-event simulation of a single-server FIFO service
- * node using Exponentially distributed interarrival times and Erlang 
- * distributed service times (i.e., a M/E/1 queue).  The service node is 
- * assumed to be initially idle, no arrivals are permitted after the 
- * terminal time STOP, and the node is then purged by processing any 
- * remaining jobs in the service node.
+/* ---------------------------------------------------------------------------- 
+ * This program is a next-event simulation of a queueing network. Topology 
+ * of the network is described by the transition-matrix P, queues have 
+ * infinite capacity and a FIFO scheduling discipline. Different interarrival
+ * times distributions and ratios are tested, meanwhile service time
+ * distribution is fixed and it is assumed to be Exponential for each service 
+ * node. The service nodes are assumed to be initially idle, no arrivals are
+ * permitted after the terminal time STOP, and the node is then purged by 
+ * processing any remaining jobs in the service node.
  *
- * Name            : ssq4.c  (Single Server Queue, version 4)
- * Author          : Steve Park & Dave Geyer
- * Language        : ANSI C
- * Latest Revision : 11-09-98
- * ------------------------------------------------------------------------- 
+ * Name            : nsssn.c  (Network of Single-Server Service Nodes)
+ * Authors         : D. Verde, G. A. Tummolo, G. La Delfa
+ * Language        : C
+ * Latest Revision : 29-07-2021
+ * ---------------------------------------------------------------------------- 
  */
 
 #include <stdio.h>
@@ -21,48 +23,51 @@
 #define START         0.0              /* initial time                   */
 #define STOP      20000.0              /* terminal (close the door) time */
 #define INFINITE   (100.0 * STOP)      /* must be much larger than STOP  */
+#define SERVERS 5
 
 
-   double Min(double a, double c)
+double Min(double a, double c) { 
 /* ------------------------------
  * return the smaller of a, b
  * ------------------------------
  */
-{ 
-  if (a < c)
-    return (a);
-  else
-    return (c);
+    if (a < c)
+        return (a);
+    else
+        return (c);
 } 
 
-
-   double GetArrival()
+double GetArrival() {
 /* ---------------------------------------------
  * generate the next arrival time, with rate 1/2
  * ---------------------------------------------
  */ 
-{
-  static double arrival = START;
+    static double arrival = START;
 
-  SelectStream(0); 
-  arrival += Exponential(2.0);
-  return (arrival);
+    SelectStream(0); 
+    arrival += Exponential(2.0);
+    return (arrival);
 } 
 
-
-   double GetService()
+double GetService() {
 /* --------------------------------------------
  * generate the next service time with rate 2/3
  * --------------------------------------------
  */ 
-{
-  SelectStream(1);
-  return (Erlang(5, 0.3));
+    SelectStream(1);
+    return (Erlang(5, 0.3));
 }  
 
 
-   int main(void)
-{
+int main(void) {
+    double P[SERVERS+1][SERVERS+1] = {                // Transition Matrix  
+        {0.0, 1.0/20, 1.0/20, 1.0/20, 1.0/20, 4.0/5},
+        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
+        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
+        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
+        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
+        {1.0,    0.0,    0.0,    0.0,    0.0,   0.0}};
+
   struct {
     double arrival;                 /* next arrival time                   */
     double completion;              /* next completion time                */
