@@ -1,19 +1,18 @@
-/* ---------------------------------------------------------------------------- 
- * This program is a next-event simulation of a queueing network. Topology 
- * of the network is described by the transition-matrix P, queues have 
- * infinite capacity and a FIFO scheduling discipline. Different interarrival
- * times distributions and ratios are tested, meanwhile service time
- * distribution is fixed and it is assumed to be Exponential for each service 
- * node. The service nodes are assumed to be initially idle, no arrivals are
- * permitted after the terminal time STOP, and the node is then purged by 
- * processing any remaining jobs in the service node.
- *
- * Name            : nsssn.c  (Network of Single-Server Service Nodes)
- * Authors         : D. Verde, G. A. Tummolo, G. La Delfa
- * Language        : C
- * Latest Revision : 29-07-2021
- * ---------------------------------------------------------------------------- 
- */
+/* -------------------------------------------------------------------------- * 
+ * This program is a next-event simulation of a queueing network. Topology    *
+ * of the network is described by the transition-matrix P, queues have        *
+ * infinite capacity and a FIFO scheduling discipline. Different interarrival *
+ * times distributions and ratios are tested, meanwhile service time          *
+ * distribution is fixed and it is assumed to be Exponential for each service *
+ * node. The service nodes are assumed to be initially idle, no arrivals are  *
+ * permitted after the terminal time STOP, and the node is then purged by     *
+ * processing any remaining jobs in the service node.                         *
+ *                                                                            *
+ * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
+ * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
+ * Language        : C                                                        *
+ * Latest Revision : 29-07-2021                                               *
+ * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
 #include <math.h>
@@ -25,23 +24,48 @@
 #define INFINITE   (100.0 * STOP)      /* must be much larger than STOP  */
 #define SERVERS 5
 
+typedef struct {
+    double t;                             // next event time   
+    int    x;                             // status: 0 (off) or 1 (on)
+} event_list[SERVERS + 1]; 
 
-double Min(double a, double c) { 
-/* ------------------------------
- * return the smaller of a, b
- * ------------------------------
- */
-    if (a < c)
-        return (a);
-    else
-        return (c);
+
+long Min(long array[], int len) { 
+/* -------------------------------------------------------------------------- * 
+ * return the smallest number in the array                                    *
+ * -------------------------------------------------------------------------- */
+    int min = array[0];
+    for (int i=1; i<len; i++) {
+        if (array[i] < min) 
+            min = array[i];
+    }
+
+    return min;
 } 
 
+int NextEvent(event_list event) {
+/* -------------------------------------------------------------------------- *
+ * return the index of the next event type                                    *
+ * -------------------------------------------------------------------------- */
+    int e;                                      
+    int i = 0;
+
+    while (event[i].x == 0)       // find the index of the first active event
+        i++;
+
+    e = i;
+    while (i < SERVERS + 1) {                 // find the most imminent event
+        i++;
+        if ((event[i].x == 1) && (event[i].t < event[e].t))
+            e = i;
+    }
+    return (e);
+}
+
 double GetArrival() {
-/* ---------------------------------------------
- * generate the next arrival time, with rate 1/2
- * ---------------------------------------------
- */ 
+/* -------------------------------------------------------------------------- * 
+ * generate the next arrival time, with rate 1/2                              *
+ * -------------------------------------------------------------------------- */
     static double arrival = START;
 
     SelectStream(0); 
@@ -50,46 +74,93 @@ double GetArrival() {
 } 
 
 double GetService() {
-/* --------------------------------------------
- * generate the next service time with rate 2/3
- * --------------------------------------------
- */ 
+/* -------------------------------------------------------------------------- * 
+ * generate the next service time with rate 2/3                               *
+ * -------------------------------------------------------------------------- */
     SelectStream(1);
-    return (Erlang(5, 0.3));
+    return (Exponential(3.0)); //Erlang(5, 0.3));
 }  
 
 
 int main(void) {
-    double P[SERVERS+1][SERVERS+1] = {                // Transition Matrix  
-        {0.0, 1.0/20, 1.0/20, 1.0/20, 1.0/20, 4.0/5},
-        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
-        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
-        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
-        {0.0,    0.0,    0.0,    0.0,    0.0,   1.0},
-        {1.0,    0.0,    0.0,    0.0,    0.0,   0.0}};
 
-  struct {
-    double arrival;                 /* next arrival time                   */
-    double completion;              /* next completion time                */
-    double current;                 /* current time                        */
-    double next;                    /* next (most imminent) event time     */
-    double last;                    /* last arrival time                   */
-  } t;
+    // Transition Matrix
+    double P[SERVERS+1][SERVERS+1] = { 
+                                {0, 1.0/20, 1.0/20, 1.0/20, 1.0/20, 4.0/5},
+                                {0,      0,      0,      0,      0,     1},
+                                {0,      0,      0,      0,      0,     1},
+                                {0,      0,      0,      0,      0,     1},
+                                {0,      0,      0,      0,      0,     1},
+                                {1,      0,      0,      0,      0,     0}};
+    
+    // Event List Management
+    event_list event;
+    
+    // Clock Time
+    struct {
+        double current;                 // current time 
+        double next;                    // next-event time
+    } t;
+    
+    // Output Statistics
   struct {
     double node;                    /* time integrated number in the node  */
     double queue;                   /* time integrated number in the queue */
     double service;                 /* time integrated number in service   */
   } area      = {0.0, 0.0, 0.0};
-  long index  = 0;                  /* used to count departed jobs         */
-  long number = 0;                  /* number in the node                  */
+    
+    long arrivals = 0;
+    long departures  = 0;                         
+    long number[SERVERS] = {0, 0, 0, 0, 0};     // number of jobs in the node
 
-  PlantSeeds(0);
-  t.current    = START;           /* set the clock                         */
-  t.arrival    = GetArrival();    /* schedule the first arrival            */
-  t.completion = INFINITE;        /* the first event can't be a completion */
+    // Init
+    PlantSeeds(0);
+    t.current    = START;           // set the clock
+    event[0].t   = GetArrival();    // schedule the first arrival
+    event[0].x = 1;
+    for (int s = 1; s <= SERVERS; s++) { 
+        event[s].t     = INFINITE;
+        event[s].x     = 0;          // Departure process is off at the start
+    }
 
-  while ((t.arrival < STOP) || (number > 0)) {
-    t.next          = Min(t.arrival, t.completion);  /* next event time   */
+    int e = 0;
+    while ((event[0].t < STOP) || (Min(number, SERVERS)  > 0)) { 
+        e = NextEvent(event);
+        t.next = event[e].t;
+        if (e == 0) {
+            // Process an Arrival
+            arrivals++;
+            double rnd = Random();                  // Detect where it comes
+            int s;
+            if (rnd > 0 && rnd <= 1.0/20)
+                s=1;
+            else if (rnd > 1.0/20 && rnd <= 2.0/20)
+                s=2;
+            else if (rnd > 2.0/20 && rnd <= 3.0/20)
+                s=3;
+            else if (rnd > 3.0/20 && rnd <= 4.0/20)
+                s=4;
+            else
+                s=5;
+            number[s-1]++;
+            /* TODO: call ProcessArrival(s) :
+                if server is busy -> add it to the queue
+                else getService() -> schedule next departure from node */
+
+            event[0].t = GetArrival(); // Scheduling Next Arrival
+            if (event[0].t > STOP)
+                event[0].x = 0;
+        } else {
+            // Process a Departure e=s
+            departures++;
+            number[e-1]--;
+            // Detect where it goes (switch or leaves net)
+            // take another job in service           
+        }
+        t.current = t.next;
+    }
+
+}
     if (number > 0)  {                               /* update integrals  */
       area.node    += (t.next - t.current) * number;
       area.queue   += (t.next - t.current) * (number - 1);
@@ -118,7 +189,7 @@ int main(void) {
     }
   } 
 
-  printf("\nfor %ld jobs\n", index);
+  printf("\nfor %ld jobs\n", arrivals);
   printf("   average interarrival time = %6.2f\n", t.last / index);
   printf("   average wait ............ = %6.2f\n", area.node / index);
   printf("   average delay ........... = %6.2f\n", area.queue / index);
