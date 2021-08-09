@@ -24,11 +24,84 @@
 #define INFINITE   (100.0 * STOP)      /* must be much larger than STOP  */
 #define SERVERS 5
 
+
 typedef struct {
     double t;                             // next event time   
     int    x;                             // status: 0 (off) or 1 (on)
 } event_list[SERVERS + 1]; 
 
+// Clock Time
+typedef struct {
+        double current;                 // current time 
+        double next;                    // next-event time
+} t;
+
+long number[SERVERS] = {0, 0, 0, 0, 0};     // number of jobs in the node
+long arrivals = 0;
+long departures  = 0;
+
+// Event List Management
+event_list event;
+
+// Clock Time
+t clock;
+
+
+double GetArrival() {
+/* -------------------------------------------------------------------------- * 
+ * generate the next arrival time, with rate 1/2                              *
+ * -------------------------------------------------------------------------- */
+    static double arrival = START;
+
+    SelectStream(0);
+    arrival += Exponential(2.0);
+    return (arrival);
+}
+
+double GetService() {
+/* -------------------------------------------------------------------------- * 
+ * generate the next service time with rate 2/3                               *
+ * -------------------------------------------------------------------------- */
+    SelectStream(1);
+    return (Exponential(3.0)); //Erlang(5, 0.3));
+}
+
+
+void ProcessArrival(int index){
+/* -------------------------------------------------------------------------- * 
+ * function to process arrival                                    *
+ * -------------------------------------------------------------------------- */
+
+	double service_time= 0.0;
+        if(number[index] == 0){
+                number[index]=1;
+                service_time =GetService()+clock.current;
+                event[index+1].t = service_time;
+                event[index+1].x = 1;
+        }else{
+                number[index]++;
+        }
+
+}
+void ProcessDeparture(int index){
+/* -------------------------------------------------------------------------- * 
+ * function to process departure                                    *
+ * -------------------------------------------------------------------------- */
+
+        double service_time= 0.0;
+        if(index <4){
+                ProcessArrival(5);
+        }else{
+                departures++;
+        }
+        number[index]--;
+        if(number[index] > 0){
+                service_time =GetService()+clock.current;
+                event[index+1].t = service_time;
+                event[index+1].x = 1;
+        }
+
+}
 
 long Min(long array[], int len) { 
 /* -------------------------------------------------------------------------- * 
@@ -62,25 +135,6 @@ int NextEvent(event_list event) {
     return (e);
 }
 
-double GetArrival() {
-/* -------------------------------------------------------------------------- * 
- * generate the next arrival time, with rate 1/2                              *
- * -------------------------------------------------------------------------- */
-    static double arrival = START;
-
-    SelectStream(0); 
-    arrival += Exponential(2.0);
-    return (arrival);
-} 
-
-double GetService() {
-/* -------------------------------------------------------------------------- * 
- * generate the next service time with rate 2/3                               *
- * -------------------------------------------------------------------------- */
-    SelectStream(1);
-    return (Exponential(3.0)); //Erlang(5, 0.3));
-}  
-
 
 int main(void) {
 
@@ -93,14 +147,6 @@ int main(void) {
                                 {0,      0,      0,      0,      0,     1},
                                 {1,      0,      0,      0,      0,     0}};
     
-    // Event List Management
-    event_list event;
-    
-    // Clock Time
-    struct {
-        double current;                 // current time 
-        double next;                    // next-event time
-    } t;
     
     // Output Statistics
   struct {
@@ -108,14 +154,11 @@ int main(void) {
     double queue;                   /* time integrated number in the queue */
     double service;                 /* time integrated number in service   */
   } area      = {0.0, 0.0, 0.0};
-    
-    long arrivals = 0;
-    long departures  = 0;                         
-    long number[SERVERS] = {0, 0, 0, 0, 0};     // number of jobs in the node
+                             
 
     // Init
     PlantSeeds(0);
-    t.current    = START;           // set the clock
+    clock.current    = START;           // set the clock
     event[0].t   = GetArrival();    // schedule the first arrival
     event[0].x = 1;
     for (int s = 1; s <= SERVERS; s++) { 
@@ -126,7 +169,7 @@ int main(void) {
     int e = 0;
     while ((event[0].t < STOP) || (Min(number, SERVERS)  > 0)) { 
         e = NextEvent(event);
-        t.next = event[e].t;
+        clock.next = event[e].t;
         if (e == 0) {
             // Process an Arrival
             arrivals++;
@@ -146,29 +189,28 @@ int main(void) {
             /* TODO: call ProcessArrival(s) :
                 if server is busy -> add it to the queue
                 else getService() -> schedule next departure from node */
-
+	    ProcessArrival(s);
             event[0].t = GetArrival(); // Scheduling Next Arrival
             if (event[0].t > STOP)
                 event[0].x = 0;
         } else {
             // Process a Departure e=s
-            departures++;
-            number[e-1]--;
+	    ProcessDeparture(e);
             // Detect where it goes (switch or leaves net)
             // take another job in service           
         }
-        t.current = t.next;
+        clock.current = clock.next;
     }
 
-}
-    if (number > 0)  {                               /* update integrals  */
+/**
+    if (number > 0)  {                               // update integrals  
       area.node    += (t.next - t.current) * number;
       area.queue   += (t.next - t.current) * (number - 1);
       area.service += (t.next - t.current);
     }
-    t.current       = t.next;                    /* advance the clock */
+    t.current       = t.next;                    // advance the clock 
 
-    if (t.current == t.arrival)  {               /* process an arrival */
+    if (t.current == t.arrival)  {               // process an arrival 0
       number++;
       t.arrival     = GetArrival();
       if (t.arrival > STOP)  {
@@ -179,24 +221,23 @@ int main(void) {
         t.completion = t.current + GetService();
     }
 
-    else {                                        /* process a completion */
+    else {                                        // process a completion
       index++;
       number--;
       if (number > 0)
         t.completion = t.current + GetService();
       else
         t.completion = INFINITE;
-    }
-  } 
+    }**/ 
 
-  printf("\nfor %ld jobs\n", arrivals);
-  printf("   average interarrival time = %6.2f\n", t.last / index);
-  printf("   average wait ............ = %6.2f\n", area.node / index);
-  printf("   average delay ........... = %6.2f\n", area.queue / index);
-  printf("   average service time .... = %6.2f\n", area.service / index);
-  printf("   average # in the node ... = %6.2f\n", area.node / t.current);
-  printf("   average # in the queue .. = %6.2f\n", area.queue / t.current);
-  printf("   utilization ............. = %6.2f\n", area.service / t.current);
+  //printf("\nfor %ld jobs\n", arrivals);
+  //printf("   average interarrival time = %6.2f\n", t.last / index);
+  //printf("   average wait ............ = %6.2f\n", area.node / index);
+  //printf("   average delay ........... = %6.2f\n", area.queue / index);
+  //printf("   average service time .... = %6.2f\n", area.service / index);
+  //printf("   average # in the node ... = %6.2f\n", area.node / t.current);
+  //printf("   average # in the queue .. = %6.2f\n", area.queue / t.current);
+  //printf("   utilization ............. = %6.2f\n", area.service / t.current);
 
   return (0);
 }
