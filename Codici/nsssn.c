@@ -18,6 +18,7 @@
 #include <math.h>
 #include "rngs.h"                      /* the multi-stream generator */
 #include "rvgs.h"                      /* random variate generators  */
+#include <unistd.h>
 
 #define START         0.0              /* initial time                   */
 #define STOP      20000.0              /* terminal (close the door) time */
@@ -73,14 +74,13 @@ void ProcessArrival(int index){
  * -------------------------------------------------------------------------- */
 
 	double service_time= 0.0;
-        if(number[index] == 0){
-                number[index]=1;
+        if(number[index-1] == 0){
                 service_time =GetService()+clock.current;
-                event[index+1].t = service_time;
-                event[index+1].x = 1;
-        }else{
-                number[index]++;
+                event[index].t = service_time;
+                event[index].x = 1;
         }
+	number[index-1]++;
+	printf("La dimensione della coda dell AP %d è %ld\n",index-1,number[index-1]);
 
 }
 void ProcessDeparture(int index){
@@ -89,18 +89,25 @@ void ProcessDeparture(int index){
  * -------------------------------------------------------------------------- */
 
         double service_time= 0.0;
-        if(index <4){
+        number[index-1]--;
+	if(index <5){
+
                 ProcessArrival(5);
+
         }else{
                 departures++;
-        }
-        number[index]--;
-        if(number[index] > 0){
-                service_time =GetService()+clock.current;
-                event[index+1].t = service_time;
-                event[index+1].x = 1;
+		
+       	}
+	if(number[index-1] > 0){
+		service_time =GetService()+clock.current;
+                event[index].t = service_time;
+                event[index].x = 1;
+        }else{
+                event[index].t = INFINITE;
+                event[index].x = 0;
         }
 
+        
 }
 
 long Min(long array[], int len) { 
@@ -168,8 +175,14 @@ int main(void) {
 
     int e = 0;
     while ((event[0].t < STOP) || (Min(number, SERVERS)  > 0)) { 
-        e = NextEvent(event);
+        //printf("STOP  =%f\n",event[0].t);
+	e = NextEvent(event);
         clock.next = event[e].t;
+	//printf("Sono l evento %d\n",e);
+	for(int z=0; z<6; z++){
+		printf("Sono l'evento %d  e ho il tempo = %f\n",z,event[z].t);
+	}
+	printf("Clock corrente %f",clock.current);	
         if (e == 0) {
             // Process an Arrival
             arrivals++;
@@ -185,12 +198,12 @@ int main(void) {
                 s=4;
             else
                 s=5;
-            number[s-1]++;
             /* TODO: call ProcessArrival(s) :
                 if server is busy -> add it to the queue
                 else getService() -> schedule next departure from node */
 	    ProcessArrival(s);
             event[0].t = GetArrival(); // Scheduling Next Arrival
+	    printf("Sono un arrivo\n");
             if (event[0].t > STOP)
                 event[0].x = 0;
         } else {
