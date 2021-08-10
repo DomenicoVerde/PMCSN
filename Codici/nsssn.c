@@ -19,6 +19,7 @@
 #include "rngs.h"                      /* the multi-stream generator */
 #include "rvgs.h"                      /* random variate generators  */
 #include <unistd.h>
+#include <stdbool.h>
 
 #define START         0.0              /* initial time                   */
 #define STOP      20000.0              /* terminal (close the door) time */
@@ -75,7 +76,7 @@ void ProcessArrival(int index){
 
 	double service_time= 0.0;
         if(number[index-1] == 0){
-                service_time =GetService()+clock.current;
+                service_time =GetService()+clock.next;
                 event[index].t = service_time;
                 event[index].x = 1;
         }
@@ -99,7 +100,7 @@ void ProcessDeparture(int index){
 		
        	}
 	if(number[index-1] > 0){
-		service_time =GetService()+clock.current;
+		service_time =GetService()+clock.next;
                 event[index].t = service_time;
                 event[index].x = 1;
         }else{
@@ -122,6 +123,18 @@ long Min(long array[], int len) {
 
     return min;
 } 
+
+bool Queue_Hide(){
+/*-------------------------------------------------------------------------- *
+ * return False if there are Jobs in the queues else retrun True             *
+ * ------------------------------------------------------------------------- */
+ 	for(int i=0; i<5; i++){
+		if(number[i]!=0){
+			return false;
+		}
+	}
+	return true;
+}
 
 int NextEvent(event_list event) {
 /* -------------------------------------------------------------------------- *
@@ -174,15 +187,14 @@ int main(void) {
     }
 
     int e = 0;
-    while ((event[0].t < STOP) || (Min(number, SERVERS)  > 0)) { 
+    while ((event[0].t < STOP) || !Queue_Hide()) { 
         //printf("STOP  =%f\n",event[0].t);
 	e = NextEvent(event);
         clock.next = event[e].t;
 	//printf("Sono l evento %d\n",e);
 	for(int z=0; z<6; z++){
 		printf("Sono l'evento %d  e ho il tempo = %f\n",z,event[z].t);
-	}
-	printf("Clock corrente %f",clock.current);	
+	}	
         if (e == 0) {
             // Process an Arrival
             arrivals++;
@@ -213,8 +225,8 @@ int main(void) {
             // take another job in service           
         }
         clock.current = clock.next;
+	printf("Clock corrente è %f\n",clock.current);
     }
-
 /**
     if (number > 0)  {                               // update integrals  
       area.node    += (t.next - t.current) * number;
@@ -241,7 +253,7 @@ int main(void) {
         t.completion = t.current + GetService();
       else
         t.completion = INFINITE;
-    }**/ 
+    }**/
 
   //printf("\nfor %ld jobs\n", arrivals);
   //printf("   average interarrival time = %6.2f\n", t.last / index);
