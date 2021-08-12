@@ -67,7 +67,7 @@ double GetArrival() {
     static double arrival = START;
 
     SelectStream(0);
-    arrival += Exponential(1000.0);
+    arrival += Exponential(0.5);
     return (arrival);
 }
 
@@ -77,7 +77,8 @@ double GetService_AP() {
  * -------------------------------------------------------------------------- */
     SelectStream(1);
     //return (Exponential(3.0)); //Erlang(5, 0.3));
-    return (Exponential(0.036864)); //Erlang(5, 0.3));
+    return (Exponential(27.1267361)); //Erlang(5, 0.3));
+    //return (Exponential(0.036864)); //Erlang(5, 0.3));
 }
 
 double GetService_Switch() {
@@ -86,7 +87,8 @@ double GetService_Switch() {
  * -------------------------------------------------------------------------- */
     SelectStream(2);
     //return (Exponential(3.0)); //Erlang(5, 0.3));
-    return (Exponential(46.137346)); //Erlang(5, 0.3));
+    return (Exponential(0.2216744153)); //Erlang(5, 0.3));
+    //return (Exponential(46.137346)); //Erlang(5, 0.3));
 }
 
 void ProcessArrival(int index) {
