@@ -68,68 +68,50 @@ double GetService() {
     return (Exponential(3.0)); //Erlang(5, 0.3));
 }
 
-
-void ProcessArrival(int index){
+void ProcessArrival(int index) {
 /* -------------------------------------------------------------------------- * 
- * function to process arrival                                    *
+ * function that processes arrivals                                           *
  * -------------------------------------------------------------------------- */
-
-	double service_time= 0.0;
-        if(number[index-1] == 0){
-                service_time =GetService()+clock.next;
-                event[index].t = service_time;
-                event[index].x = 1;
-        }
-	number[index-1]++;
-	printf("La dimensione della coda dell AP %d è %ld\n",index-1,number[index-1]);
-
-}
-void ProcessDeparture(int index){
-/* -------------------------------------------------------------------------- * 
- * function to process departure                                    *
- * -------------------------------------------------------------------------- */
-
-        double service_time= 0.0;
-        number[index-1]--;
-	if(index <5){
-
-                ProcessArrival(5);
-
-        }else{
-                departures++;
-		
-       	}
-	if(number[index-1] > 0){
-		service_time =GetService()+clock.next;
-                event[index].t = service_time;
-                event[index].x = 1;
-        }else{
-                event[index].t = INFINITE;
-                event[index].x = 0;
-        }
-
-        
-}
-
-long Min(long array[], int len) { 
-/* -------------------------------------------------------------------------- * 
- * return the smallest number in the array                                    *
- * -------------------------------------------------------------------------- */
-    int min = array[0];
-    for (int i=1; i<len; i++) {
-        if (array[i] < min) 
-            min = array[i];
+    double service_time= 0.0;
+    if(number[index-1] == 0) {  // if the queue is empty, serve it immediately
+        service_time = GetService() + clock.next;
+        event[index].t = service_time;
+        event[index].x = 1;
     }
 
-    return min;
-} 
+	number[index-1]++;
+	printf("La dimensione della coda dell AP %d è %ld\n",index-1,number[index-1]);
+}
 
-bool Queue_Hide(){
+void ProcessDeparture(int index) {
+/* -------------------------------------------------------------------------- * 
+ * function that processes departures                                         *
+ * -------------------------------------------------------------------------- */
+    double service_time= 0.0;
+	if(index < 5) {
+        ProcessArrival(5);  // if it comes at APs send the job to the switch
+    } else {
+        departures++;       // else the job leaves the system
+    }
+
+    number[index-1]--;
+
+	if(number[index-1] > 0) {   // schedule next departure from this node
+		service_time = GetService() + clock.next;
+        event[index].t = service_time;
+        event[index].x = 1;
+    } else {
+        event[index].t = INFINITE;
+        event[index].x = 0;
+    }        
+}
+
+bool empty_queues(){
 /*-------------------------------------------------------------------------- *
- * return False if there are Jobs in the queues else retrun True             *
+ * return false if there are jobs in the queues else retrun true             *
  * ------------------------------------------------------------------------- */
- 	for(int i=0; i<5; i++){
-		if(number[i]!=0){
+    for(int i=0; i<SERVERS; i++) {
+		if(number[i] != 0) {
 			return false;
 		}
 	}
@@ -167,19 +149,17 @@ int main(void) {
                                 {0,      0,      0,      0,      0,     1},
                                 {1,      0,      0,      0,      0,     0}};
     
-    
-    // Output Statistics
-  struct {
+    // TODO: Output Statistics
+    struct {
     double node;                    /* time integrated number in the node  */
     double queue;                   /* time integrated number in the queue */
     double service;                 /* time integrated number in service   */
-  } area      = {0.0, 0.0, 0.0};
-                             
-
+    } area      = {0.0, 0.0, 0.0};
+                            
     // Init
     PlantSeeds(0);
-    clock.current    = START;           // set the clock
-    event[0].t   = GetArrival();    // schedule the first arrival
+    clock.current    = START;        // set the clock
+    event[0].t   = GetArrival();     // schedule the first arrival
     event[0].x = 1;
     for (int s = 1; s <= SERVERS; s++) { 
         event[s].t     = INFINITE;
@@ -187,18 +167,21 @@ int main(void) {
     }
 
     int e = 0;
-    while ((event[0].t < STOP) || !Queue_Hide()) { 
+    while ((event[0].t < STOP) || !empty_queues()) { 
         //printf("STOP  =%f\n",event[0].t);
-	e = NextEvent(event);
+	    e = NextEvent(event);
         clock.next = event[e].t;
-	//printf("Sono l evento %d\n",e);
-	for(int z=0; z<6; z++){
-		printf("Sono l'evento %d  e ho il tempo = %f\n",z,event[z].t);
-	}	
+	    
+        //printf("Sono l evento %d\n",e);
+	    for(int z=0; z<6; z++){
+		    printf("Sono l'evento %d  e ho il tempo = %f\n",z,event[z].t);
+  	    }	
+  
         if (e == 0) {
             // Process an Arrival
             arrivals++;
-            double rnd = Random();                  // Detect where it comes
+
+            double rnd = Random();              // Detect where it comes
             int s;
             if (rnd > 0 && rnd <= 1.0/20)
                 s=1;
@@ -210,22 +193,19 @@ int main(void) {
                 s=4;
             else
                 s=5;
-            /* TODO: call ProcessArrival(s) :
-                if server is busy -> add it to the queue
-                else getService() -> schedule next departure from node */
-	    ProcessArrival(s);
+
+            ProcessArrival(s);
             event[0].t = GetArrival(); // Scheduling Next Arrival
-	    printf("Sono un arrivo\n");
+            printf("Sono un arrivo\n");
             if (event[0].t > STOP)
                 event[0].x = 0;
         } else {
-            // Process a Departure e=s
-	    ProcessDeparture(e);
-            // Detect where it goes (switch or leaves net)
-            // take another job in service           
+            // Process a Departure (e indicates server number)
+            ProcessDeparture(e);          
         }
+        
         clock.current = clock.next;
-	printf("Clock corrente è %f\n",clock.current);
+	    printf("Clock corrente è %f\n",clock.current);
     }
 /**
     if (number > 0)  {                               // update integrals  
