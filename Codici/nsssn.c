@@ -37,10 +37,21 @@ typedef struct {
         double current;                 // current time 
         double next;                    // next-event time
 } t;
+/* Output Statistics                                             */
+typedef struct {                           /* accumulated sums of                */
+    double service;                  /*   service times                    */
+    long   served;                   /*   number served                    */
+
+} sum[SERVERS];
+
 
 long number[SERVERS] = {0, 0, 0, 0, 0};     // number of jobs in the node
 long arrivals = 0;
 long departures  = 0;
+double area =0.0;
+
+//Output Statistics Struct
+sum statistics;
 
 // Event List Management
 event_list event;
@@ -56,16 +67,26 @@ double GetArrival() {
     static double arrival = START;
 
     SelectStream(0);
-    arrival += Exponential(2.0);
+    arrival += Exponential(1000.0);
     return (arrival);
 }
 
-double GetService() {
+double GetService_AP() {
 /* -------------------------------------------------------------------------- * 
  * generate the next service time with rate 2/3                               *
  * -------------------------------------------------------------------------- */
     SelectStream(1);
-    return (Exponential(3.0)); //Erlang(5, 0.3));
+    //return (Exponential(3.0)); //Erlang(5, 0.3));
+    return (Exponential(0.036864)); //Erlang(5, 0.3));
+}
+
+double GetService_Switch() {
+/* -------------------------------------------------------------------------- * 
+ * generate the next service time with rate 2/3                               *
+ * -------------------------------------------------------------------------- */
+    SelectStream(2);
+    //return (Exponential(3.0)); //Erlang(5, 0.3));
+    return (Exponential(46.137346)); //Erlang(5, 0.3));
 }
 
 void ProcessArrival(int index) {
@@ -74,7 +95,11 @@ void ProcessArrival(int index) {
  * -------------------------------------------------------------------------- */
     double service_time= 0.0;
     if(number[index-1] == 0) {  // if the queue is empty, serve it immediately
-        service_time = GetService() + clock.next;
+        if(index == 5){
+            service_time = GetService_Switch()+ clock.next;
+        }else{
+            service_time = GetService_AP()+ clock.next;
+        }
         event[index].t = service_time;
         event[index].x = 1;
     }
@@ -88,18 +113,26 @@ void ProcessDeparture(int index) {
  * function that processes departures                                         *
  * -------------------------------------------------------------------------- */
     double service_time= 0.0;
+    double service_statistics =0.0;
 	if(index < 5) {
         ProcessArrival(5);  // if it comes at APs send the job to the switch
     } else {
-        departures++;       // else the job leaves the system
+        departures++;      // else the job leaves the system
     }
 
     number[index-1]--;
 
 	if(number[index-1] > 0) {   // schedule next departure from this node
-		service_time = GetService() + clock.next;
+        if(index == 5){
+            service_statistics = GetService_Switch();
+        }else{
+            service_statistics = GetService_AP();
+        }
+		service_time = service_statistics + clock.next;
         event[index].t = service_time;
         event[index].x = 1;
+        statistics[index].service+= service_statistics;
+        statistics[index].served++;
     } else {
         event[index].t = INFINITE;
         event[index].x = 0;
@@ -149,12 +182,6 @@ int main(void) {
                                 {0,      0,      0,      0,      0,     1},
                                 {1,      0,      0,      0,      0,     0}};
     
-    // TODO: Output Statistics
-    struct {
-    double node;                    /* time integrated number in the node  */
-    double queue;                   /* time integrated number in the queue */
-    double service;                 /* time integrated number in service   */
-    } area      = {0.0, 0.0, 0.0};
                             
     // Init
     PlantSeeds(0);
@@ -167,10 +194,13 @@ int main(void) {
     }
 
     int e = 0;
+    int current_number = 0; //--------------
     while ((event[0].t < STOP) || !empty_queues()) { 
         //printf("STOP  =%f\n",event[0].t);
 	    e = NextEvent(event);
         clock.next = event[e].t;
+        current_number = number[0]+number[1]+number[2]+number[3]+number[4];
+        area     += (clock.next - clock.current) * current_number;
 	    
         //printf("Sono l evento %d\n",e);
 	    for(int z=0; z<6; z++){
@@ -207,42 +237,23 @@ int main(void) {
         clock.current = clock.next;
 	    printf("Clock corrente è %f\n",clock.current);
     }
-/**
-    if (number > 0)  {                               // update integrals  
-      area.node    += (t.next - t.current) * number;
-      area.queue   += (t.next - t.current) * (number - 1);
-      area.service += (t.next - t.current);
-    }
-    t.current       = t.next;                    // advance the clock 
 
-    if (t.current == t.arrival)  {               // process an arrival 0
-      number++;
-      t.arrival     = GetArrival();
-      if (t.arrival > STOP)  {
-        t.last      = t.current;
-        t.arrival   = INFINITE;
-      }
-      if (number == 1)
-        t.completion = t.current + GetService();
-    }
+    printf("\nfor %ld jobs the service node statistics are:\n\n", departures);
+    printf("  avg interarrivals .. = %6.2f\n", event[0].t / departures);
+    printf("  avg wait ........... = %6.2f\n", area / departures);
+    printf("  avg # in node ...... = %6.2f\n", area / clock.current);
 
-    else {                                        // process a completion
-      index++;
-      number--;
-      if (number > 0)
-        t.completion = t.current + GetService();
-      else
-        t.completion = INFINITE;
-    }**/
-
-  //printf("\nfor %ld jobs\n", arrivals);
-  //printf("   average interarrival time = %6.2f\n", t.last / index);
-  //printf("   average wait ............ = %6.2f\n", area.node / index);
-  //printf("   average delay ........... = %6.2f\n", area.queue / index);
-  //printf("   average service time .... = %6.2f\n", area.service / index);
-  //printf("   average # in the node ... = %6.2f\n", area.node / t.current);
-  //printf("   average # in the queue .. = %6.2f\n", area.queue / t.current);
-  //printf("   utilization ............. = %6.2f\n", area.service / t.current);
+    for (int s = 1; s <= SERVERS; s++)            /* adjust area to calculate */ 
+       area -= statistics[s].service;              /* averages for the queue   */    
+    printf("  avg delay .......... = %6.2f\n", area / departures);
+    printf("  avg # in queue ..... = %6.2f\n", area / clock.current);
+    printf("\nthe server statistics are:\n\n");
+    printf("    server     utilization     avg service        share\n");
+    for (int s = 1; s <= SERVERS; s++)
+    printf("%8d %14.3f %15.2f %15.3f\n", s, statistics[s].service / clock.current,
+            statistics[s].service / statistics[s].served,
+            (double) statistics[s].served / (statistics[5].served+statistics[1].served+statistics[2].served+statistics[3].served+statistics[4].served));
+    printf("\n");
 
   return (0);
 }
