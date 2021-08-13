@@ -268,8 +268,10 @@ int main(void) {
     printf(" Valori Teorici\n");
     double eq_ap = CalculateETQ(1/20.0,mu_AP);
     double eq_sw = CalculateETQ(1.0,mu_SW);
-    printf(" E(Tq) AP%6.2f\n",eq_ap);
-    printf(" E(Tq) SW%6.2f\n",eq_sw);
+    printf(" E(Tq) AP %6.2f\n",eq_ap);
+    printf(" E(Tq) SW %6.2f\n",eq_sw);
+    printf(" E(Nq) AP+SW %6.2f\n",((eq_ap*4/20.0)+(eq_sw*4/5.0))*(1/lambda));
+    printf(" E(Ns) AP+SW %6.2f\n",(((eq_ap+mu_AP)*4/20.0)+((eq_sw+mu_SW)*4/5.0))*(1/lambda));
     printf(" Globale    E(Tq) =%6.2f",(eq_ap*4/20.0)+(eq_sw*4/5.0));
     printf(" Globale    E(Ts) =%6.2f",((eq_ap+mu_AP)*4/20.0)+((eq_sw+mu_SW)*4/5.0));
 
