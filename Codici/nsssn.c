@@ -11,7 +11,7 @@
  * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
  * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
  * Language        : C                                                        *
- * Latest Revision : 29-07-2021                                               *
+ * Latest Revision : 13-08-2021                                               *
  * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
@@ -50,7 +50,9 @@ long number[SERVERS] = {0, 0, 0, 0, 0};     // number of jobs in the node
 long arrivals = 0;
 long departures  = 0;
 double area =0.0;
-
+double lambda = 0.2;
+double mu_AP = 3.004807692; //E(S)
+double mu_SW = 0.02167441628; //E(S)
 //Output Statistics Struct
 sum statistics;
 
@@ -60,6 +62,14 @@ event_list event;
 // Clock Time
 t clock;
 
+double CalculateETQ(double prob,double mu){ // 1/20 per access point
+/* -------------------------------------------------------------------------- * 
+ * functtion to calculate E(Ts)                            *
+ * -------------------------------------------------------------------------- */ 
+    double ro = prob*(1/lambda)/(1/mu);
+    return ro*mu_AP/(1-ro);
+}
+
 
 double GetArrival() {
 /* -------------------------------------------------------------------------- * 
@@ -68,7 +78,7 @@ double GetArrival() {
     static double arrival = START;
 
     SelectStream(0);
-    arrival += Exponential(0.2);
+    arrival += Exponential(lambda);
     return (arrival);
 }
 
@@ -77,7 +87,7 @@ double GetService_AP() {
  * generate the next service time with rate 2/3                               *
  * -------------------------------------------------------------------------- */
     SelectStream(1);
-    return (Exponential(3.004807692)); //Erlang(5, 0.3));
+    return (Exponential(mu_AP)); //Erlang(5, 0.3));
 }
 
 double GetService_Switch() {
@@ -85,7 +95,7 @@ double GetService_Switch() {
  * generate the next service time with rate 2/3                               *
  * -------------------------------------------------------------------------- */
     SelectStream(2);
-    return (Exponential(0.02167441628)); //Erlang(5, 0.3));
+    return (Exponential(mu_SW)); //Erlang(5, 0.3));
 }
 
 void ProcessArrival(int index) {
@@ -198,8 +208,8 @@ int main(void) {
     while ((event[0].t < STOP) || !empty_queues()) { 
 	    e = NextEvent(event);
         clock.next = event[e].t;
-        current_number = number[0]+number[1]+number[2]+number[3]+number[4];
-        area     += (clock.next - clock.current) * current_number;
+        // current_number = number[0]+number[1]+number[2]+number[3]+number[4];
+        // area     += (clock.next - clock.current) * current_number;
         if (e == 0) {
             // Process an Arrival
             arrivals++;
@@ -225,7 +235,8 @@ int main(void) {
             // Process a Departure (e indicates server number)
             ProcessDeparture(e);          
         }
-        
+        current_number = number[0]+number[1]+number[2]+number[3]+number[4];
+        area     += (clock.next - clock.current) * current_number;
         clock.current = clock.next;
     }
 
@@ -252,6 +263,15 @@ int main(void) {
             statistics[s].service / statistics[s].served,
             (double) statistics[s].served / total_served);
     printf("\n");
+
+
+    printf(" Valori Teorici\n");
+    double eq_ap = CalculateETQ(1/20.0,mu_AP);
+    double eq_sw = CalculateETQ(1.0,mu_SW);
+    printf(" E(Tq) AP%6.2f\n",eq_ap);
+    printf(" E(Tq) SW%6.2f\n",eq_sw);
+    printf(" Globale    E(Tq) =%6.2f",(eq_ap*4/20.0)+(eq_sw*4/5.0));
+    printf(" Globale    E(Ts) =%6.2f",((eq_ap+mu_AP)*4/20.0)+((eq_sw+mu_SW)*4/5.0));
 
     return (0);
 }
