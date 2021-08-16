@@ -49,10 +49,11 @@ typedef struct {                     /*        accumulated sums of         */
 long number[SERVERS] = {0, 0, 0, 0, 0};     // number of jobs in the node
 long arrivals = 0;
 long departures  = 0;
-double area =0.0;
-double lambda = 0.2;
-double mu_AP = 3.004807692; //E(S)
-double mu_SW = 0.02167441628; //E(S)
+double area = 0.0;
+double areaAP_SW[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
+double lambda = 5;
+double mu_AP = 0.3328; 
+double mu_SW = 46.137344; 
 //Output Statistics Struct
 sum statistics;
 
@@ -62,12 +63,14 @@ event_list event;
 // Clock Time
 t clock;
 
-double CalculateETQ(double prob,double mu){ // 1/20 per access point
+double CalculateETQ(double prob,double mu){ 
 /* -------------------------------------------------------------------------- * 
- * functtion to calculate E(Ts)                            *
+ * function to calculate E(Tq) mu represents the service rate                 *
+ * while prob represents the percentage of flow                               *
+ * Exponential
  * -------------------------------------------------------------------------- */ 
-    double ro = prob*(1/lambda)/(1/mu);
-    return ro*mu_AP/(1-ro);
+    double ro = prob*(lambda)/(mu);
+    return (ro*(1/mu))/(1-ro);
 }
 
 
@@ -78,7 +81,7 @@ double GetArrival() {
     static double arrival = START;
 
     SelectStream(0);
-    arrival += Exponential(lambda);
+    arrival += Exponential(1.0/lambda);
     return (arrival);
 }
 
@@ -87,7 +90,7 @@ double GetService_AP() {
  * generate the next service time with rate 2/3                               *
  * -------------------------------------------------------------------------- */
     SelectStream(1);
-    return (Exponential(mu_AP)); //Erlang(5, 0.3));
+    return (Exponential(1.0/mu_AP)); //Erlang(5, 0.3));
 }
 
 double GetService_Switch() {
@@ -95,7 +98,7 @@ double GetService_Switch() {
  * generate the next service time with rate 2/3                               *
  * -------------------------------------------------------------------------- */
     SelectStream(2);
-    return (Exponential(mu_SW)); //Erlang(5, 0.3));
+    return (Exponential(1.0/mu_SW)); //Erlang(5, 0.3));
 }
 
 void ProcessArrival(int index) {
@@ -213,7 +216,7 @@ int main(void) {
         if (e == 0) {
             // Process an Arrival
             arrivals++;
-
+            
             double rnd = Random();              // Detect where it comes
             int s;
             if (rnd > 0 && rnd <= 1.0/20)
@@ -226,17 +229,21 @@ int main(void) {
                 s=4;
             else
                 s=5;
-
             ProcessArrival(s);
             event[0].t = GetArrival(); // Scheduling Next Arrival
             if (event[0].t > STOP)
                 event[0].x = 0;
         } else {
             // Process a Departure (e indicates server number)
-            ProcessDeparture(e);          
+            ProcessDeparture(e);         
         }
         current_number = number[0]+number[1]+number[2]+number[3]+number[4];
         area     += (clock.next - clock.current) * current_number;
+        areaAP_SW[0] +=  (clock.next - clock.current) * number[0];
+        areaAP_SW[1] +=  (clock.next - clock.current) * number[1];
+        areaAP_SW[2] +=  (clock.next - clock.current) * number[2];
+        areaAP_SW[3] +=  (clock.next - clock.current) * number[3];
+        areaAP_SW[4] +=  (clock.next - clock.current) * number[4];
         clock.current = clock.next;
     }
 
@@ -248,32 +255,35 @@ int main(void) {
 
     for (int s = 1; s <= SERVERS; s++)            /* adjust area to calculate */ 
        area -= statistics[s].service;             /* averages for the queue   */   
- 
+    
+
     printf("  avg delay .......... = %6.2f\n", area / departures);
     printf("  avg # in queue ..... = %6.2f\n", area / clock.current);
     printf("\nStatistics for each Server are:\n\n");
-    printf("    server     utilization     avg service        share\n");
+    printf("    server     utilization     avg service        share        avg wait       avg delay\n");
     
     int total_served = statistics[5].served +
                        statistics[1].served + statistics[2].served +
                        statistics[3].served + statistics[4].served;
     for (int s = 1; s <= SERVERS; s++)
-    printf("%8d %14.3f %15.2f %15.3f\n", s, 
+    printf("%8d %14.3f %15.2f %15.3f %14.3f %14.3f\n", s, 
             statistics[s].service / clock.current,
             statistics[s].service / statistics[s].served,
-            (double) statistics[s].served / total_served);
+            (double) statistics[s].served / total_served, areaAP_SW[s-1] / statistics[s].served, (areaAP_SW[s-1] -statistics[s].service) / statistics[s].served);
     printf("\n");
 
 
     printf(" Valori Teorici\n");
     double eq_ap = CalculateETQ(1/20.0,mu_AP);
     double eq_sw = CalculateETQ(1.0,mu_SW);
-    printf(" E(Tq) AP %6.2f\n",eq_ap);
-    printf(" E(Tq) SW %6.2f\n",eq_sw);
-    printf(" E(Nq) AP+SW %6.2f\n",((eq_ap*4/20.0)+(eq_sw*4/5.0))*(1/lambda));
-    printf(" E(Ns) AP+SW %6.2f\n",(((eq_ap+mu_AP)*4/20.0)+((eq_sw+mu_SW)*4/5.0))*(1/lambda));
-    printf(" Globale    E(Tq) =%6.2f",(eq_ap*4/20.0)+(eq_sw*4/5.0));
-    printf(" Globale    E(Ts) =%6.2f",((eq_ap+mu_AP)*4/20.0)+((eq_sw+mu_SW)*4/5.0));
+    printf(" E(Tq) AP %6.4f\n",eq_ap);
+    printf(" E(Tq) SW %6.4f\n",eq_sw);
+    printf(" E(Nq) AP+SW %6.2f\n",((eq_ap*4/20.0)+(eq_sw*4/5.0))*(lambda));
+    printf(" E(Ns) AP+SW %6.2f\n",(((eq_ap+(1/mu_AP))*4/20.0)+((eq_sw+(1/mu_SW))*4/5.0))*(lambda));
+    printf(" Globale    E(Tq) =%6.2f\n",(eq_ap*4/20.0)+(eq_sw*4/5.0));
+    printf(" Globale    E(Ts) =%6.2f\n",((eq_ap+(1/mu_AP))*4/20.0)+((eq_sw+(1/mu_SW))*4/5.0));
+
+
 
     return (0);
 }
