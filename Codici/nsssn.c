@@ -11,7 +11,7 @@
  * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
  * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
  * Language        : C                                                        *
- * Latest Revision : 13-08-2021                                               *
+ * Latest Revision : 17-08-2021                                               *
  * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
@@ -101,6 +101,8 @@ double GetService_Switch() {
     return (Exponential(1.0/mu_SW)); //Erlang(5, 0.3));
 }
 
+
+
 void ProcessArrival(int index) {
 /* -------------------------------------------------------------------------- * 
  * function that processes arrivals                                           *
@@ -170,7 +172,7 @@ int NextEvent(event_list event) {
     int i = 0;
 
     while (event[i].x == 0)       // find the index of the first active event
-        i++;
+        i++; 
 
     e = i;
     while (i < SERVERS + 1) {                 // find the most imminent event
@@ -179,6 +181,53 @@ int NextEvent(event_list event) {
             e = i;
     }
     return (e);
+}
+
+bool TestProcess_Arrival(int index,bool first){
+    /* -------------------------------------------------------------------------- *
+    * function to verify the correct implementation of ProcessArrival             *
+    * -------------------------------------------------------------------------- */
+    if( first){
+        clock.next    = START+GetService_AP();
+        event[index].t = clock.next;
+        statistics[index].served = 1;
+        number[index-1] = 1;
+        ProcessArrival(index);
+        if(number[index-1]==2 && statistics[index].served==1 && event[index].t == clock.next){
+            return true;
+        }else{
+            return false;
+        }
+    }else{
+        clock.next    = START;
+        event[index].t = clock.next;
+        statistics[index].served = 0;
+        number[index-1] = 0;
+        ProcessArrival(index);
+        if(number[index-1]==1 && statistics[index].served==1 && event[index].t > clock.next){
+            return true;
+        }else{
+            return false;
+        } 
+    }
+
+}
+
+bool TestEmptyQueue(int value){
+    /* -------------------------------------------------------------------------- *
+    * function to verify the correct implementation of empty_queues               *
+    * -------------------------------------------------------------------------- */
+
+    for (int s = 0; s < SERVERS; s++) { 
+        number[s] = value;
+    }
+
+    if(empty_queues() == false){
+        return true;
+    }else{ 
+        return false;
+    }
+
 }
 
 
@@ -256,7 +305,6 @@ int main(void) {
     for (int s = 1; s <= SERVERS; s++)            /* adjust area to calculate */ 
        area -= statistics[s].service;             /* averages for the queue   */   
     
-
     printf("  avg delay .......... = %6.2f\n", area / departures);
     printf("  avg # in queue ..... = %6.2f\n", area / clock.current);
     printf("\nStatistics for each Server are:\n\n");
@@ -266,7 +314,7 @@ int main(void) {
                        statistics[1].served + statistics[2].served +
                        statistics[3].served + statistics[4].served;
     for (int s = 1; s <= SERVERS; s++)
-    printf("%8d %14.3f %15.2f %15.3f %14.3f %14.3f\n", s, 
+    printf("%8d %14.3f %15.3f %15.3f %14.3f %14.3f\n", s, 
             statistics[s].service / clock.current,
             statistics[s].service / statistics[s].served,
             (double) statistics[s].served / total_served, areaAP_SW[s-1] / statistics[s].served, (areaAP_SW[s-1] -statistics[s].service) / statistics[s].served);
@@ -285,5 +333,10 @@ int main(void) {
 
 
 
+    if(TestEmptyQueue(2) && TestProcess_Arrival(2,false)){
+        printf("True\n");
+    }else{
+        printf("False\n");
+    }
     return (0);
 }
