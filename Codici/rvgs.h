@@ -23,6 +23,7 @@ double Normal(double m, double s);
 double Lognormal(double a, double b);
 double Chisquare(long n);
 double Student(long n);
+double BoundedPareto(double a, double l, double h);
 
 #endif
 

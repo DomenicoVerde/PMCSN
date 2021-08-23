@@ -16,18 +16,20 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "rngs.h"               /* the multi-stream generator */
-#include "rvgs.h"               /* random variate generators  */
+#include "rngs.h"               /* the multi-stream generator           */
+#include "rvgs.h"               /* random variate generators            */
 #include <unistd.h>
 #include <stdbool.h>
 
-#define START 0.0               /* initial time                   */
-#define STOP 30000.0            /* terminal (close the door) time */
-#define INFINITE (100.0 * STOP) /* must be much larger than STOP  */
+#define START 0.0               /* initial time                         */
+#define STOP 30000.0            /* terminal (close the door) time       */
+#define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 5
-#define MU_AP 0.332800
-#define MU_SWITCH 46.137344
+#define LAMBDA 5                /* Traffic flow rate                    */
+#define MU_AP 0.332800          /* Service rate of APs                  */
+#define MU_SWITCH 46.137344     /* Service rate of Switch               */
+#define RUN_TESTS_AND_CHECKS 0  /* Set this to 1 if you want to verify
+                                   and validate the model               */
 
 typedef struct
 {
@@ -44,10 +46,10 @@ typedef struct
 
 // Output Statistics
 typedef struct
-{                   /*        accumulated sums of         */
-    double service; /*   service times                    */
-    long served;    /*   number of served jobs            */
-    long arrives;   /*   arrives in the node              */
+{                   // aggregated sums of:       
+    double service;     //   service times                    
+    long served;        //   number of served jobs          
+    long arrives;       //   arrives in the node             
 
 } sum[SERVERS + 1];
 
@@ -410,43 +412,51 @@ int main(void)
     printf("\n");
     printf("  Average Waiting Time of Users: %13.6f\n", avg_wait);
 
-    printf("\n");
-    printf("\n");
-
-    printf("3) Theorical Values (Exponential arrives/service times only)\n");
-    printf("  Utilization of APs: %f\n", (1.0 / 20) * LAMBDA / MU_AP);
-    printf("  Utilization of Switch: %f\n", LAMBDA/MU_SWITCH);
     
-    double Etq_ap = E_TQ((1 / 20.0)*LAMBDA, MU_AP);
-    double Etq_sw = E_TQ(LAMBDA, MU_SWITCH);
-    printf("  E(Tq)_AP: %10.6f\n", Etq_ap);
-    printf("  E(Tq)_SW: %10.6f\n", Etq_sw);
-    
-    double Ets_ap = E_TS((1 / 20.0)*LAMBDA, MU_AP);
-    double Ets_sw = E_TS(LAMBDA, MU_SWITCH);
-    printf("  E(Ts)_AP: %10.6f\n", Ets_ap);
-    printf("  E(Ts)_SW: %10.6f\n", Ets_sw);
-
-    double Ets = Ets_ap * 4/20.0 + Ets_sw * 4/5.0;
-    double Etq = Etq_ap * 4/20.0 + Etq_sw * 4/5.0;
-    printf("  E(Tq):    %10.6f\n", Etq);
-    printf("  E(Ts):    %10.6f\n", Ets);
-    printf("  E(Nq):    %10.6f\n", Etq * LAMBDA);
-    printf("  E(Ns):    %10.6f\n", Ets * LAMBDA);
-    
-    printf("\n");
-    printf("  E(Ts)_User:    %10.6f\n", Ets_ap + Ets_sw);
-
-    if (TestEmptyQueue(2) && TestProcess_Arrival(2, false) && TestProcessDeparture(3))
+    if (RUN_TESTS_AND_CHECKS)
     {
-        //printf("True\n");
-    }
-    else
-    {
-        printf("False\n");
+        printf("Now, we do some tests to verify and validate the model\n");
+        printf("If you see some errors, there is something that should ");
+        printf("be wrong and you need to check it.\n");
+        
+        printf("Test 1: function empty_queues() ");
+        if (TestEmptyQueue(5))
+            printf("OK\n");
+        else 
+            printf("Error!!!\n");
+
+        printf("Consistency Check 1: Arrivals = Departures ");
+        if (arrivals == departures) 
+            printf("OK\n");
+        else 
+            printf("Error!!!\n");
+
+        printf("\n");
+        printf("\n");
+        printf("3) Theorical Values (Exponential arrives/service times only)\n");
+        printf("  Utilization of APs: %f\n", (1.0 / 20) * LAMBDA / MU_AP);
+        printf("  Utilization of Switch: %f\n", LAMBDA/MU_SWITCH);
+        
+        double Etq_ap = E_TQ((1 / 20.0)*LAMBDA, MU_AP);
+        double Etq_sw = E_TQ(LAMBDA, MU_SWITCH);
+        printf("  E(Tq)_AP: %10.6f\n", Etq_ap);
+        printf("  E(Tq)_SW: %10.6f\n", Etq_sw);
+        
+        double Ets_ap = E_TS((1 / 20.0)*LAMBDA, MU_AP);
+        double Ets_sw = E_TS(LAMBDA, MU_SWITCH);
+        printf("  E(Ts)_AP: %10.6f\n", Ets_ap);
+        printf("  E(Ts)_SW: %10.6f\n", Ets_sw);
+
+        double Ets = Ets_ap * 4/20.0 + Ets_sw * 4/5.0;
+        double Etq = Etq_ap * 4/20.0 + Etq_sw * 4/5.0;
+        printf("  E(Tq):    %10.6f\n", Etq);
+        printf("  E(Ts):    %10.6f\n", Ets);
+        printf("  E(Nq):    %10.6f\n", Etq * LAMBDA);
+        printf("  E(Ns):    %10.6f\n", Ets * LAMBDA);
+        
+        printf("\n");
+        printf("  E(Ts)_User:    %10.6f\n", Ets_ap + Ets_sw);
     }
 
-    //TODO: add some consistency checks like this and do tests in another file
-    //printf("arrivals = %ld, departures = %ld\n", arrivals, departures);
     return (0);
 }

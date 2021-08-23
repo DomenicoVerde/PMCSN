@@ -11,7 +11,7 @@
  *      Pascal(n, p)      x = 0,...     n*p/(1-p)    n*p/((1-p)*(1-p))
  *      Poisson(m)        x = 0,...     m            m
  * 
- * and seven continuous distributions
+ * and eight continuous distributions
  *
  *      Uniform(a, b)     a < x < b     (a + b)/2    (b - a)*(b - a)/12 
  *      Exponential(m)    x > 0         m            m*m
@@ -20,6 +20,7 @@
  *      Lognormal(a, b)   x > 0            see below
  *      Chisquare(n)      x > 0         n            2*n 
  *      Student(n)        all x         0  (n > 1)   n/(n - 2)   (n > 2)
+ *      BoundedPareto(a, l, h)
  *
  * For the a Lognormal(a, b) random variable, the mean and variance are
  *
@@ -214,5 +215,17 @@
  */
 {
   return (Normal(0.0, 1.0) / sqrt(Chisquare(n) / n));
+}
+
+   double BoundedPareto(double a, double l, double h)
+/* ==================================================
+ * Generates a Bounded Pareto random variate
+ * a is the shape parameter, should be 0 < a < 2
+ * l is the minimum value (should be l > 0)
+ * h is the maximum value (should be h > l)
+ * ==================================================
+ */
+{
+  return l/pow(1.0 - Random() * (1.0 - pow(l/h, a)), 1/a);
 }
 
