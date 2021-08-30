@@ -275,8 +275,10 @@ int main(void)
 
     // Print of Output Statistics
     double tot_area = area[0] + area[1] + area[2] + area[3] + area[4];
+    double tot_served = statistics[1].served + statistics[2].served +
+                        statistics[3].served + statistics[4].served;
     printf("Output Statistics (computed using %ld jobs) are:\n", departures);
-    printf("[Refused Jobs: %ld (%4.2f %%)]\n\n", refused, 100.0*refused/arrivals);
+    printf("[Refused Jobs: %ld (%4.2f %%)]\n\n", refused, 100.0*refused/tot_served);
     printf("1) Global Statistics\n");
     printf("  avg interarrival time = %6.6f\n", event[0].t/arrivals);
     printf("  avg waiting time = %6.6f\n", tot_area/departures);
