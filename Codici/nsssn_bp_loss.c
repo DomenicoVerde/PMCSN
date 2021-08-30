@@ -25,8 +25,9 @@
 #define STOP 30000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 15                /* Traffic flow rate                    */
+#define LAMBDA 10                /* Traffic flow rate                    */
 #define ALPHA 0.5               /* Shape Parameter of BP Distribution   */
+#define CAPACITY 10
 
 
 typedef struct
@@ -54,6 +55,7 @@ typedef struct
 long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
 long arrivals = 0;
 long departures = 0;
+long refused = 0;                       // number of jobs lost
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0}; 
 
 //Output Statistics Struct
@@ -250,9 +252,13 @@ int main(void)
             {
                 s = 5;
             }
-            
-            statistics[s].arrives++; 
-            ProcessArrival(s);
+
+            if (number[s-1] > CAPACITY && s < 5) {
+                refused++;
+            } else {
+                statistics[s].arrives++; 
+                ProcessArrival(s);
+            }
 
             event[0].t = GetArrival(); // Scheduling Next Arrival
             if (event[0].t > STOP)
@@ -269,7 +275,8 @@ int main(void)
 
     // Print of Output Statistics
     double tot_area = area[0] + area[1] + area[2] + area[3] + area[4];
-    printf("Output Statistics (computed using %ld jobs) are:\n\n", departures);
+    printf("Output Statistics (computed using %ld jobs) are:\n", departures);
+    printf("[Refused Jobs: %ld (%4.2f %%)]\n\n", refused, 100.0*refused/arrivals);
     printf("1) Global Statistics\n");
     printf("  avg interarrival time = %6.6f\n", event[0].t/arrivals);
     printf("  avg waiting time = %6.6f\n", tot_area/departures);
