@@ -1,17 +1,17 @@
 /* -------------------------------------------------------------------------- * 
- * This program is a next-event simulation of a queueing network. Topology    *
- * of the network is described by the transition-matrix P, queues have        *
- * infinite capacity and a FIFO scheduling discipline. Different interarrival *
- * times distributions and ratios are tested, meanwhile service time          *
- * distribution is fixed and it is assumed to be Exponential for each service *
+ * This program is a next-event simulation of a queueing network model of     *
+ * the Wi-Fi network of Campus X.                                             *
+ * Queues have infinite capacity and a FIFO scheduling discipline.            *
+ * Both interarrival time distribution and service time                       *
+ * distribution are assumed to be Exponential for each service                *
  * node. The service nodes are assumed to be initially idle, no arrivals are  *
  * permitted after the terminal time STOP, and the node is then purged by     *
  * processing any remaining jobs in the service node.                         *
  *                                                                            *
- * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
+ * Name            : nsssn_exp.c  (Network of Single-Server Service Nodes)    *
  * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
  * Language        : C                                                        *
- * Latest Revision : 18-08-2021                                               *
+ * Latest Revision : 08-09-2021                                               *
  * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
@@ -28,7 +28,7 @@
 #define LAMBDA 5                /* Traffic flow rate                    */
 #define MU_AP 0.332800          /* Service rate of APs                  */
 #define MU_SWITCH 46.137344     /* Service rate of Switch               */
-#define RUN_TESTS_AND_CHECKS 0  /* Set this to 1 if you want to verify
+#define RUN_TESTS_AND_CHECKS 1  /* Set this to 1 if you want to verify
                                    and validate the model               */
 
 typedef struct
@@ -59,7 +59,7 @@ long departures = 0;
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0}; 
 
 //Output Statistics Struct
-sum statistics; //TODO: change name
+sum statistics;
 
 // Event List Management
 event_list event;
@@ -218,10 +218,17 @@ int NextEvent(event_list event)
     return (e);
 }
 
-bool TestProcess_Arrival(int index, bool first)
+
+
+/*---------------------------------Tests--------------------------------------*/
+
+bool TestProcessArrival(int index, bool first)
 {
 /* -------------------------------------------------------------------------- *
- * function to verify the correct implementation of ProcessArrival             *
+ * Function to verify the correct implementation of ProcessArrival().         *     
+ * This simulates the system in the case there is 1 job in service            *
+ * (and the next will be enqueued), and in the case there is no job in        *
+ * service (and the next will be served).                                     *
  * -------------------------------------------------------------------------- */
     if (first)
     {
@@ -230,7 +237,8 @@ bool TestProcess_Arrival(int index, bool first)
         statistics[index].served = 1;
         number[index - 1] = 1;
         ProcessArrival(index);
-        if (number[index - 1] == 2 && statistics[index].served == 1 && event[index].t == clock.next)
+        if (number[index - 1] == 2 && statistics[index].served == 1 && 
+            event[index].t == clock.next)
         {
             return true;
         }
@@ -246,7 +254,8 @@ bool TestProcess_Arrival(int index, bool first)
         statistics[index].served = 0;
         number[index - 1] = 0;
         ProcessArrival(index);
-        if (number[index - 1] == 1 && statistics[index].served == 1 && event[index].t > clock.next)
+        if (number[index - 1] == 1 && statistics[index].served == 1 && 
+            event[index].t > clock.next)
         {
             return true;
         }
@@ -259,12 +268,18 @@ bool TestProcess_Arrival(int index, bool first)
 
 bool TestProcessDeparture(int index)
 {
+/* -------------------------------------------------------------------------- *
+ * Function to verify the correct implementation of ProcessDeparture().       * 
+ * This simulates the system in the case there are 2 job in the system        *
+ * and there is a departure from that service node.                           *  
+ * -------------------------------------------------------------------------- */
     clock.next = START + GetService_AP();
     event[index].t = clock.next;
     number[index - 1] = 2;
     statistics[index].served = 1;
     ProcessDeparture(index);
-    if (number[index - 1] == 1 && event[index].t > clock.next && statistics[index].served == 2) //&& statistics[index].served == 2
+    if (number[index - 1] == 1 && event[index].t > clock.next && 
+        statistics[index].served == 2)
     {
         return true;
     }
@@ -274,15 +289,16 @@ bool TestProcessDeparture(int index)
     }
 }
 
-bool TestEmptyQueue(int value)
+bool TestEmptyQueue()
 {
-    /* -------------------------------------------------------------------------- *
-    * function to verify the correct implementation of empty_queues               *
-    * -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- *
+ * Function to verify the correct implementation of empty_queues().           *
+ * This simulates the case there are some jobs in the system.                 *
+ * -------------------------------------------------------------------------- */
 
     for (int s = 0; s < SERVERS; s++)
     {
-        number[s] = value;
+        number[s] = 5;
     }
 
     if (empty_queues() == false)
@@ -294,6 +310,10 @@ bool TestEmptyQueue(int value)
         return false;
     }
 }
+
+/*-----------------------------End of Tests-----------------------------------*/
+
+
 
 int main(void)
 {
@@ -311,7 +331,6 @@ int main(void)
     }
 
     int e = 0;
-    //int current_number = 0;
     while ((event[0].t < STOP) || !empty_queues())
     {
         e = NextEvent(event);
@@ -421,6 +440,18 @@ int main(void)
         
         printf("Test 1: function empty_queues() ");
         if (TestEmptyQueue(5))
+            printf("OK\n");
+        else 
+            printf("Error!!!\n");
+        
+        printf("Test 2: function ProcessDeparture() ");
+        if (TestProcessDeparture(1)) 
+            printf("OK\n");
+        else 
+            printf("Error!!!\n");
+        
+        printf("Test 3: function ProcessArrival() ");
+        if (TestProcessArrival(1,1) && TestProcessArrival(1,0)) 
             printf("OK\n");
         else 
             printf("Error!!!\n");

@@ -1,17 +1,17 @@
 /* -------------------------------------------------------------------------- * 
- * This program is a next-event simulation of a queueing network. Topology    *
- * of the network is described by the transition-matrix P, queues have        *
- * infinite capacity and a FIFO scheduling discipline. Different interarrival *
- * times distributions and ratios are tested, meanwhile service time          *
- * distribution is fixed and it is assumed to be Exponential for each service *
+ * This program is a next-event simulation of a queueing network model of     *
+ * the Wi-Fi network of Campus X.                                             *
+ * Queues have a finite capacity and a FIFO scheduling discipline.            *
+ * Interarrival time distribution is Exponential, meanwhile service time      *
+ * distribution is assumed to be Bounded Pareto for each service              *
  * node. The service nodes are assumed to be initially idle, no arrivals are  *
  * permitted after the terminal time STOP, and the node is then purged by     *
  * processing any remaining jobs in the service node.                         *
  *                                                                            *
- * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
+ * Name            : nsssn_bp_loss.c (Network of Single-Server Service Nodes) *
  * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
  * Language        : C                                                        *
- * Latest Revision : 18-08-2021                                               *
+ * Latest Revision : 08-09-2021                                               *
  * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
@@ -25,7 +25,7 @@
 #define STOP 30000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 10                /* Traffic flow rate                    */
+#define LAMBDA 10               /* Traffic flow rate                    */
 #define ALPHA 0.5               /* Shape Parameter of BP Distribution   */
 #define CAPACITY 10
 
@@ -59,7 +59,7 @@ long refused = 0;                       // number of jobs lost
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0}; 
 
 //Output Statistics Struct
-sum statistics; //TODO: change name
+sum statistics; 
 
 // Event List Management
 event_list event;
