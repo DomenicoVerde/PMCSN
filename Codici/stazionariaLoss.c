@@ -29,9 +29,11 @@
 #define LAMBDA 5               /* Traffic flow rate                    */
 #define ALPHA 1.5               /* Shape Parameter of BP Distribution   */
 #define CAPACITY 10
+#define N (LAMBDA *30000)
+#define K 64
+#define B (int) (N/K)
 
-int k = 64;
-double b = 468.75; 
+ 
 typedef struct {
     double t;                             // next event time   
     int    x;                             // status: 0 (off) or 1 (on)
@@ -225,11 +227,22 @@ int NextEvent(event_list event)
 int main(void) {
 
     for(int f=1; f<=10;f++){
+    
+        int departures_batch = 0;        
+        PlantSeeds(46464);
+
+        clock.current    = START;        
         streams = f*2;
-        //Per eliminare le statstiche precedenti
+        //To delete the previus statistics
         current_batch = 0;
         refused = 0;
         arrival = START;
+        departures = 0;
+        number[0] = 0;
+        number[1] = 0;
+        number[2] = 0;
+        number[3] = 0;
+        number[4] = 0;
         for(int current_batch_index=0 ; current_batch_index<64 ; current_batch_index++){
             for(int z=0; z<SERVERS;z++){ 
                 s_batch[current_batch_index][z].area=0.0;
@@ -238,11 +251,7 @@ int main(void) {
         }
         
         
-        double current_time_batch = START; //per verificare che il tempo del batch                   
-        // Init
-        PlantSeeds(46464);
 
-        clock.current    = START;        // set the clock
         
         event[0].t   = GetArrival();     // schedule the first arrival
         event[0].x = 1;
@@ -254,22 +263,25 @@ int main(void) {
         }
 
         int e = 0;
-        while ((event[0].t < STOP) || !empty_queues()) { 
+        while (departures < N) { 
             e = NextEvent(event);
             clock.next = event[e].t;
             
-            if(current_batch<k){
-                for(int z=0; z<SERVERS;z++){ //prendo le analisi di tutti i batch
-                    s_batch[current_batch][z].area+=  (clock.next - clock.current) * number[z];
+            if(current_batch<K){
+                for(int z=0; z< SERVERS ;z++){ //Take all batch's analyses
+                    if(number[z]>0){
+                        s_batch[current_batch][z].area+=  (clock.next - clock.current) * number[z];
+                    }
                 } 
             }
-            if(b < current_time_batch && current_batch < k){
+            if(B < departures_batch && current_batch < K){
                 // per passare al prossimo batch
                 current_batch++;
+                departures_batch = 0;
                 
             }
             clock.current = clock.next;
-            current_time_batch = clock.current-b*current_batch;
+            departures_batch++;
             if (e == 0) {
                 // Process an Arrival
                 arrivals++;
@@ -302,7 +314,7 @@ int main(void) {
             }
         }
 
-        for (int z = 0; z < k ; z++){
+        for (int z = 0; z < K ; z++){
             //printf("Batch n° %d\n",z + 1);
             double avg_wait = (s_batch[z][0].area / s_batch[z][0].departures +
                         s_batch[z][1].area / s_batch[z][1].departures + 
@@ -313,7 +325,7 @@ int main(void) {
             b_intervall[z].avg_wait = avg_wait;
             
         }
-        for(int i = 0; i< 64; i++){
+        for(int i = 0; i< K; i++){
             printf("%f\n",b_intervall[i].avg_wait);
         }
         printf("\n\n");
