@@ -16,8 +16,8 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "rngs.h"
-#include "rvgs.h"
+#include "rngs.h" // the multi-stream generator
+#include "rvgs.h" // random variate generators
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@
 #define SERVERS 5
 #define LAMBDA 10
 #define ALPHA 0.5
+#define CAPACITY 10 // Max queue capacity
 
 typedef struct
 {
@@ -34,14 +35,12 @@ typedef struct
     int x;
 } event_list[SERVERS + 1];
 
-// Clock Time
 typedef struct
 {
     double current;
     double next;
 } t;
 
-// Output Statistics
 typedef struct
 {
     double service;
@@ -53,6 +52,7 @@ typedef struct
 long number[SERVERS] = {0, 0, 0, 0, 0};
 long arrivals = 0;
 long departures = 0;
+long refused = 0; // number of jobs loss
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
 double STOP = 0;
 double arrival = START;
@@ -93,7 +93,7 @@ double GetService_Switch()
 
 void ProcessArrival(int index)
 {
-    /* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- *
      * function that processes arrivals                                           *
      * -------------------------------------------------------------------------- */
     double service_time = 0.0;
@@ -176,11 +176,8 @@ int NextEvent(event_list event)
     return (e);
 }
 
-void Initialize()
+void initialize()
 {
-    /* ------------------------------------------------------------------------ *
-     * all system statistics are initialized                                    *
-     * ------------------------------------------------------------------------ */
     for (int i = 0; i < SERVERS; i++)
     {
         number[i] = 0;
@@ -189,29 +186,30 @@ void Initialize()
     for (int s = 1; s <= SERVERS; s++)
     {
         event[s].t = INFINITE;
-        event[s].x = 0;
+        event[s].x = 0; // Departure process is off at the start
         statistics[s].service = 0.0;
         statistics[s].served = 0;
     }
     arrivals = 0;
     departures = 0;
-    event[0].t = 0; /* In modo che posso avere una nuova replica */
+    event[0].t = 0; // In modo che posso avere una nuova replica
+    refused = 0;
 }
 
 double transient(double t_arresto)
 {
-    Initialize();
+    initialize();
 
-    // GetSeed(&seed);
-    // printf("seed iniziale: %ld\n", seed); //print the state of generator
+    /*  GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
+    printf("seed iniziale: %ld\n", seed);                                         */
 
-    STOP = t_arresto;                    // stopping time
+    STOP = t_arresto;
     clock.current = START;               // set the clock
     event[0].t = GetArrival(event[0].t); // schedule the first arrival
     event[0].x = 1;
     int e = 0;
 
-    while (event[0].t < STOP) // system stop condition
+    while (event[0].t < STOP)
     {
         e = NextEvent(event);
         clock.next = event[e].t;
@@ -223,8 +221,7 @@ double transient(double t_arresto)
         clock.current = clock.next;
         if (e == 0)
         {
-            // Process an Arrival
-            arrivals++;
+            arrivals++; // Process an Arrival
 
             double rnd = Random(); // Detect where it comes
             int s;
@@ -248,8 +245,20 @@ double transient(double t_arresto)
             {
                 s = 5;
             }
-            statistics[s].arrives++;
-            ProcessArrival(s);
+
+            if (number[s - 1] > CAPACITY && s < 5)
+            {
+                /* -------------------------------------------------------------------------- * 
+                 * if the queue is full the job is rejected and a new arrival is scheduled    *
+                 * -------------------------------------------------------------------------- */
+                refused++;
+            }
+            else
+            {
+                statistics[s].arrives++; //increase number of arrivals for that node
+                ProcessArrival(s);
+            }
+
             event[0].t = GetArrival(event[0].t); // Scheduling Next Arrival
             if (event[0].t > STOP)
             {
@@ -258,10 +267,12 @@ double transient(double t_arresto)
         }
         else
         {
-            // Process a Departure (e indicates server number)
-            ProcessDeparture(e);
+            ProcessDeparture(e); // Process a Departure (e indicates server number)
         }
     }
+
+    printf("%ld - %4.2f %%\n", refused, 100.0 * refused / arrivals); //are printed rejected jobs and their percentage
+
     double avg_wait = (area[0] / statistics[1].served +
                        area[1] / statistics[2].served +
                        area[2] / statistics[3].served +
@@ -269,29 +280,29 @@ double transient(double t_arresto)
                           4 +
                       area[4] / statistics[5].served;
 
-    // GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
-    // printf("seed finale: %ld\n\n", seed);
+    /*  GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
+    printf("seed finale: %ld\n\n", seed);                                         */
 
     return (avg_wait);
 }
 
 int main()
 {
-    double t_arresto = 105; //210; //410; //820; //1640; //3280; //6560; //13110;
+    double t_arresto = 410; //210; //410; //820; //1640; //3280; //6560; //13120;
     long seed = 123456789;
     double response;
     FILE *file = fopen("file.txt", "w+");
     if (file == NULL)
     {
-        printf("Error");
+        printf("Error ");
         return 0;
     }
     PlantSeeds(seed); // initialize plantSeeds out of the replication cycle
     for (int i = 0; i < 100; i++)
     {
-        /* ------------------------------------------------------------------------ *
-         * Replications loop                                                        *
-         * ------------------------------------------------------------------------ */
+        /* ----------------------------------------------------------------------- *
+         * Replications loop                                                       *
+         * ----------------------------------------------------------------------- */
         response = transient(t_arresto);
         fprintf(file, "%f\n", response);
         fflush(file);
