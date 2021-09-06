@@ -70,7 +70,8 @@ int streams = 1;
 long departures = 0;
 int current_batch = 0; // a quale batch ci troviamo
 
-
+//Output Statistics Struct
+sum statistics;
 // Event List Management
 event_list event;
 
@@ -218,12 +219,14 @@ int NextEvent(event_list event)
 
 int main(void) {
 
-    for(int f=1; f<=10; f++){
-        int departures_batch = 0;               
+    for(int f=1; f<=10;f++){
+    
+        int departures_batch = 0;        
         PlantSeeds(46464);
 
-        clock.current    = START;
+        clock.current    = START;        
         streams = f*2;
+        //To delete the previus statistics
         current_batch = 0;
         arrival = START;
         departures = 0;
@@ -237,14 +240,18 @@ int main(void) {
                 s_batch[current_batch_index][z].area=0.0;
                 s_batch[current_batch_index][z].departures=0;
             } 
-        }   
-        //To delete the previus statistics
+        }
+        
+        
 
-        event[0].t   = GetArrival();     
+        
+        event[0].t   = GetArrival();     // schedule the first arrival
         event[0].x = 1;
         for (int s = 1; s <= SERVERS; s++) { 
             event[s].t     = INFINITE;
             event[s].x     = 0;          // Departure process is off at the start
+            statistics[s].service = 0.0;
+            statistics[s].served = 0;
         }
 
         int e = 0;
@@ -252,7 +259,7 @@ int main(void) {
             e = NextEvent(event);
             clock.next = event[e].t;
             
-            if(current_batch < K){
+            if(current_batch<K){
                 for(int z=0; z< SERVERS ;z++){ //Take all batch's analyses
                     if(number[z]>0){
                         s_batch[current_batch][z].area+=  (clock.next - clock.current) * number[z];
@@ -260,7 +267,7 @@ int main(void) {
                 } 
             }
             if(B < departures_batch && current_batch < K){
-                // Process next Batch
+                // per passare al prossimo batch
                 current_batch++;
                 departures_batch = 0;
                 
@@ -283,7 +290,11 @@ int main(void) {
                     s=4;
                 else
                     s=5;
+
+                
+                statistics[s].arrives++; 
                 ProcessArrival(s);
+                
                 event[0].t = GetArrival(); // Scheduling Next Arrival
                 if (event[0].t > STOP)
                     event[0].x = 0;
@@ -294,7 +305,6 @@ int main(void) {
         }
 
         for (int z = 0; z < K ; z++){
-            //printf("Batch n° %d\n",z + 1);
             double avg_wait = (s_batch[z][0].area / s_batch[z][0].departures +
                         s_batch[z][1].area / s_batch[z][1].departures + 
                         s_batch[z][2].area / s_batch[z][2].departures + 

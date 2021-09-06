@@ -25,7 +25,7 @@
 #define STOP 30000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 10               /* Traffic flow rate                    */
+#define LAMBDA 15               /* Traffic flow rate                    */
 #define ALPHA 0.5               /* Shape Parameter of BP Distribution   */
 
 
