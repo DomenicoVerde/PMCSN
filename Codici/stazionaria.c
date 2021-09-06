@@ -1,12 +1,17 @@
 /* -------------------------------------------------------------------------- * 
- * This program make a transient analysis of the queueing network.            *
- * N denotes the number of jobs, K the number of batches and so the batch     *
- * size B is calculated by N/K (casted as an integer).                        *
+ * This program is a next-event simulation of a queueing network. Topology    *
+ * of the network is described by the transition-matrix P, queues have        *
+ * infinite capacity and a FIFO scheduling discipline. Different interarrival *
+ * times distributions and ratios are tested, meanwhile service time          *
+ * distribution is fixed and it is assumed to be Exponential for each service *
+ * node. The service nodes are assumed to be initially idle, no arrivals are  *
+ * permitted after the terminal time STOP, and the node is then purged by     *
+ * processing any remaining jobs in the service node.                         *
  *                                                                            *
- * Name            : stazionaria.c  (Steady-State An. of nsssn_bp.c)          *
- * Authors         : G. A. Tummolo, G. La Delfa, D. Verde                     *
+ * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
+ * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
  * Language        : C                                                        *
- * Latest Revision : 08-09-2021                                               *
+ * Latest Revision : 23-08-2021                                               *
  * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
@@ -289,6 +294,7 @@ int main(void) {
         }
 
         for (int z = 0; z < K ; z++){
+            //printf("Batch n° %d\n",z + 1);
             double avg_wait = (s_batch[z][0].area / s_batch[z][0].departures +
                         s_batch[z][1].area / s_batch[z][1].departures + 
                         s_batch[z][2].area / s_batch[z][2].departures + 

@@ -1,13 +1,19 @@
 /* -------------------------------------------------------------------------- * 
- * This program make a transient analysis of the system with loss.            *
- * N denotes the number of jobs, K the number of batches and so the batch     *
- * size B is calculated by N/K (casted as an integer).                        *
+ * This program is a next-event simulation of a queueing network. Topology    *
+ * of the network is described by the transition-matrix P, queues have        *
+ * infinite capacity and a FIFO scheduling discipline. Different interarrival *
+ * times distributions and ratios are tested, meanwhile service time          *
+ * distribution is fixed and it is assumed to be Exponential for each service *
+ * node. The service nodes are assumed to be initially idle, no arrivals are  *
+ * permitted after the terminal time STOP, and the node is then purged by     *
+ * processing any remaining jobs in the service node.                         *
  *                                                                            *
- * Name            : stazionaria_loss.c  (Steady-State An. of nsssn_bp_loss.c)*
- * Authors         : G. A. Tummolo, G. La Delfa, D. Verde                     *
+ * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
+ * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
  * Language        : C                                                        *
- * Latest Revision : 08-09-2021                                               *
+ * Latest Revision : 23-08-2021                                               *
  * -------------------------------------------------------------------------- */
+
 #include <stdio.h>
 #include <math.h>
 #include "rngs.h"                      /* the multi-stream generator */
@@ -20,7 +26,7 @@
 #define STOP 30000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 5               /* Traffic flow rate                    */
+#define LAMBDA 15               /* Traffic flow rate                    */
 #define ALPHA 1.5               /* Shape Parameter of BP Distribution   */
 #define CAPACITY 10
 #define N (LAMBDA *30000)
