@@ -439,7 +439,7 @@ int main(void)
         printf("be wrong and you need to check it.\n");
         
         printf("Test 1: function empty_queues() ");
-        if (TestEmptyQueue(5))
+        if (TestEmptyQueue())
             printf("OK\n");
         else 
             printf("Error!!!\n");
