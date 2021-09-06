@@ -1,15 +1,12 @@
 /* -------------------------------------------------------------------------- * 
- * This program is a next-event simulation of a queueing network. Topology    *
- * of the network is described by the transition-matrix P, queues have        *
- * infinite capacity and a FIFO scheduling discipline. Different interarrival *
+ * This program makes a transient analysis of the queueing network.           *
+ * Number of replication can be setted at row 290, in the for cycle.          *
+ * Time of the simulation can be modified at 280.                             *  
  * times distributions and ratios are tested, meanwhile service time          *
- * distribution is fixed and it is assumed to be Exponential for each service *
- * node. The service nodes are assumed to be initially idle, no arrivals are  *
- * permitted after the terminal time STOP, and the node is then purged by     *
- * processing any remaining jobs in the service node.                         *
+ * Results of the analysis will be printed on a file.                         *
  *                                                                            *
- * Name            : nsssn.c  (Network of Single-Server Service Nodes)        *
- * Authors         : D. Verde, G. A. Tummolo, G. La Delfa                     *
+ * Name            : transiente.c  (Transient Analysis of nsssn_bp.c)         *
+ * Authors         : G. La Delfa, D. Verde, G. A. Tummolo                     *
  * Language        : C                                                        *
  * Latest Revision : 04-09-2021                                               *
  * -------------------------------------------------------------------------- */

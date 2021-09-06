@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Wall
 LDFLAGS = -lm
 
-OBJFILES = rngs.o rvgs.o nsssn_exp.o nsssn_bp.o stazionaria.o  stazionariaLoss.o nsssn_bp_loss.o rvms.o
+OBJFILES = rngs.o rvgs.o rvms.o nsssn_exp.o nsssn_bp.o nsssn_bp_loss.o transiente.o transiente_loss.o stazionaria.o stazionaria_loss.o  
 
 all: $(OBJFILES)
 
@@ -24,11 +24,16 @@ nsssn_bp.o: nsssn_bp.c rngs.o rvgs.o
 nsssn_bp_loss.o: nsssn_bp_loss.c rngs.o rvgs.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
+transiente.o: transiente.c rngs.o rvgs.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+transiente_loss.o: transiente_loss.c rngs.o rvgs.o
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 stazionaria.o: stazionaria.c rngs.o rvgs.o rvms.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
-stazionariaLoss.o: stazionariaLoss.c rngs.o rvgs.o rvms.o
+stazionaria_loss.o: stazionaria_loss.c rngs.o rvgs.o rvms.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 
