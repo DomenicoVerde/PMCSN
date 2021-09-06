@@ -1,0 +1,3 @@
+the expected value is in the interval  9,095613 +/- 0,037694
+9,133306
+9,057919
