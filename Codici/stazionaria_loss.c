@@ -309,7 +309,6 @@ int main(void) {
         }
 
         for (int z = 0; z < K ; z++){
-            //printf("Batch n° %d\n",z + 1);
             double avg_wait = (s_batch[z][0].area / s_batch[z][0].departures +
                         s_batch[z][1].area / s_batch[z][1].departures + 
                         s_batch[z][2].area / s_batch[z][2].departures + 
