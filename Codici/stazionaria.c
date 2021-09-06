@@ -23,12 +23,12 @@
 #include "rvms.h"
 
 #define START 0.0               /* initial time                         */
-#define STOP 30000.0            /* terminal (close the door) time       */
+#define STOP 100000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 15               /* Traffic flow rate                    */
+#define LAMBDA 5               /* Traffic flow rate                    */
 #define ALPHA 1.5               /* Shape Parameter of BP Distribution   */
-#define N (LAMBDA *30000)
+#define N 400000
 #define K 64
 #define B (int) (N/K)
 
@@ -273,7 +273,6 @@ int main(void) {
                 
             }
             clock.current = clock.next;
-            departures_batch++;
             if (e == 0) {
                 // Process an Arrival
                 arrivals++;
@@ -300,7 +299,9 @@ int main(void) {
                     event[0].x = 0;
             } else {
                 // Process a Departure (e indicates server number)
-                ProcessDeparture(e);         
+                ProcessDeparture(e);
+                departures_batch++;
+        
             }
         }
 
