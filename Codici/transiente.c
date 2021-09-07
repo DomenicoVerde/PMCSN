@@ -22,6 +22,7 @@
 #define LAMBDA 10             //traffic flow rate
 #define ALPHA 0.5             //shape parameter of BP Distribution (0,5 - 1,5)
 
+/* list where the next events are stored */
 typedef struct
 {
     double t; // next event time
@@ -45,8 +46,8 @@ typedef struct
 } sum[SERVERS + 1];
 
 long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
-long arrivals = 0;
-long departures = 0;
+long arrivals = 0;                      // statistics to store arrivals
+long departures = 0;                    // statistics to store departures
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
 double STOP = 0;
 double arrival = START;

@@ -23,38 +23,44 @@
 #define ALPHA 0.5   //shape parameter of BP Distribution (0,5 - 1,5)
 #define CAPACITY 10 // Max queue capacity
 
+/* list where the next events are stored */
 typedef struct
 {
-    double t;
-    int x;
+    double t; // next event time
+    int x;    // status: 0 (off) or 1 (on)
 } event_list[SERVERS + 1];
 
+/* Clock Time */
 typedef struct
 {
-    double current;
-    double next;
+    double current; // current time
+    double next;    // next-event time
 } t;
 
+/* Output Statistics */
 typedef struct
-{
-    double service;
-    long served;
-    long arrives;
+{                   // aggregated sums of:
+    double service; //   service times
+    long served;    //   number of served jobs
+    long arrives;   //   arrives in the node
 
 } sum[SERVERS + 1];
 
-long number[SERVERS] = {0, 0, 0, 0, 0};
-long arrivals = 0;
-long departures = 0;
-long refused = 0; // number of jobs loss
+long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
+long arrivals = 0;                      // statistics to store arrivals
+long departures = 0;                    // statistics to store departures
+long refused = 0;                       // number of jobs loss
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
 double STOP = 0;
 double arrival = START;
 
+/* Output Statistics Struct */
 sum statistics;
 
+/* Event List Management */
 event_list event;
 
+/* Clock Time */
 t clock;
 
 double GetArrival(double arrival)
