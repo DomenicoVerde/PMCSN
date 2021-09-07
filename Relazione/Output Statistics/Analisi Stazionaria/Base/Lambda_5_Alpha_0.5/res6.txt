@@ -1,3 +1,3 @@
 
 based upon 64 data points and with 95% confidence
-the expected value is in the interval  3.265417 +/- 0.131672
+the expected value is in the interval  3.335778 +/- 0.060595
