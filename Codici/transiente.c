@@ -20,7 +20,7 @@
 #define INFINITE (30000000.0) //terminal (close the door) time
 #define SERVERS 5             //number of servers
 #define LAMBDA 10             //traffic flow rate
-#define ALPHA 0.5             //shape parameter of BP Distribution
+#define ALPHA 0.5             //shape parameter of BP Distribution (0,5 - 1,5)
 
 typedef struct
 {
@@ -195,13 +195,13 @@ void Initialize()
     event[0].t = 0; /* In modo che posso avere una nuova replica */
 }
 
-double transient(double t_arresto, long seed)
-// double transient(double t_arresto)
+// double transient(double t_arresto, long seed)
+double transient(double t_arresto)
 {
     Initialize();
 
-    GetSeed(&seed);
-    printf("seed iniziale: %ld\n", seed); //print the state of generator
+    // GetSeed(&seed);
+    // printf("seed iniziale: %ld\n", seed); //print the state of generator
 
     STOP = t_arresto;                    // stopping time
     clock.current = START;               // set the clock
@@ -267,8 +267,8 @@ double transient(double t_arresto, long seed)
                           4 +
                       area[4] / statistics[5].served;
 
-    GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
-    printf("seed finale: %ld\n\n", seed);
+    // GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
+    // printf("seed finale: %ld\n\n", seed);
 
     return (avg_wait);
 }
@@ -278,7 +278,7 @@ int main()
     double t_arresto = 105; //210; //410; //820; //1640; //3280; //6560; //13110;
     long seed = 123456789;
     double response;
-    FILE *file = fopen("fileModifica.txt", "w+");
+    FILE *file = fopen("file.txt", "w+");
     if (file == NULL)
     {
         printf("Error");
@@ -290,8 +290,8 @@ int main()
         /* ------------------------------------------------------------------------ *
          * Replications loop                                                        *
          * ------------------------------------------------------------------------ */
-        response = transient(t_arresto, seed);
-        // response = transient(t_arresto);
+        // response = transient(t_arresto, seed);
+        response = transient(t_arresto);
         fprintf(file, "%f\n", response);
         fflush(file);
     }

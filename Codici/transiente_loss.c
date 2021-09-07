@@ -20,7 +20,7 @@
 #define INFINITE (30000000.0)
 #define SERVERS 5
 #define LAMBDA 10
-#define ALPHA 0.5
+#define ALPHA 0.5   //shape parameter of BP Distribution (0,5 - 1,5)
 #define CAPACITY 10 // Max queue capacity
 
 typedef struct
@@ -190,12 +190,13 @@ void initialize()
     refused = 0;
 }
 
+// double transient(double t_arresto, long seed)
 double transient(double t_arresto)
 {
     initialize();
 
-    /*  GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
-    printf("seed iniziale: %ld\n", seed);                                         */
+    // GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
+    // printf("seed iniziale: %ld\n", seed);
 
     STOP = t_arresto;
     clock.current = START;               // set the clock
@@ -274,18 +275,18 @@ double transient(double t_arresto)
                           4 +
                       area[4] / statistics[5].served;
 
-    /*  GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
-    printf("seed finale: %ld\n\n", seed);                                         */
+    // GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
+    // printf("seed finale: %ld\n\n", seed);
 
     return (avg_wait);
 }
 
 int main()
 {
-    double t_arresto = 410; //210; //410; //820; //1640; //3280; //6560; //13120;
+    double t_arresto = 105; //210; //410; //820; //1640; //3280; //6560; //13110;
     long seed = 123456789;
     double response;
-    FILE *file = fopen("fileN.txt", "w+");
+    FILE *file = fopen("file.txt", "w+");
     if (file == NULL)
     {
         printf("Error ");
@@ -297,6 +298,7 @@ int main()
         /* ----------------------------------------------------------------------- *
          * Replications loop                                                       *
          * ----------------------------------------------------------------------- */
+        // response = transient(t_arresto, seed);
         response = transient(t_arresto);
         fprintf(file, "%f\n", response);
         fflush(file);
