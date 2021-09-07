@@ -8,16 +8,13 @@
  * Name            : transiente_loss.c  (Transient An. of nsssn_bp_loss.c)    *
  * Authors         : G. La Delfa, D. Verde, G. A. Tummolo                     *
  * Language        : C                                                        *
- * Latest Revision : 04-09-2021                                               *
+ * Latest Revision : 08-09-2021                                               *
  * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
 #include <math.h>
 #include "rngs.h" // the multi-stream generator
 #include "rvgs.h" // random variate generators
-#include <unistd.h>
-#include <stdbool.h>
-#include <stdlib.h>
 
 #define START 0.0
 #define INFINITE (30000000.0)
@@ -288,7 +285,7 @@ int main()
     double t_arresto = 410; //210; //410; //820; //1640; //3280; //6560; //13120;
     long seed = 123456789;
     double response;
-    FILE *file = fopen("file.txt", "w+");
+    FILE *file = fopen("fileN.txt", "w+");
     if (file == NULL)
     {
         printf("Error ");

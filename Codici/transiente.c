@@ -8,56 +8,56 @@
  * Name            : transiente.c  (Transient Analysis of nsssn_bp.c)         *
  * Authors         : G. La Delfa, D. Verde, G. A. Tummolo                     *
  * Language        : C                                                        *
- * Latest Revision : 04-09-2021                                               *
+ * Latest Revision : 08-09-2021                                               *
  * -------------------------------------------------------------------------- */
 
 #include <stdio.h>
 #include <math.h>
-#include "rngs.h"
-#include "rvgs.h"
-#include <unistd.h>
-#include <stdbool.h>
-#include <stdlib.h>
+#include "rngs.h" // the multi-stream generator
+#include "rvgs.h" // random variate generators
 
-#define START 0.0
-#define INFINITE (30000000.0)
-#define SERVERS 5
-#define LAMBDA 10
-#define ALPHA 0.5
+#define START 0.0             //initial time
+#define INFINITE (30000000.0) //terminal (close the door) time
+#define SERVERS 5             //number of servers
+#define LAMBDA 10             //traffic flow rate
+#define ALPHA 0.5             //shape parameter of BP Distribution
 
 typedef struct
 {
-    double t;
-    int x;
+    double t; // next event time
+    int x;    // status: 0 (off) or 1 (on)
 } event_list[SERVERS + 1];
 
-// Clock Time
+/* Clock Time */
 typedef struct
 {
-    double current;
-    double next;
+    double current; // current time
+    double next;    // next-event time
 } t;
 
-// Output Statistics
+/* Output Statistics */
 typedef struct
-{
-    double service;
-    long served;
-    long arrives;
+{                   // aggregated sums of:
+    double service; //   service times
+    long served;    //   number of served jobs
+    long arrives;   //   arrives in the node
 
 } sum[SERVERS + 1];
 
-long number[SERVERS] = {0, 0, 0, 0, 0};
+long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
 long arrivals = 0;
 long departures = 0;
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
 double STOP = 0;
 double arrival = START;
 
+/* Output Statistics Struct */
 sum statistics;
 
+/* Event List Management */
 event_list event;
 
+/* Clock Time */
 t clock;
 
 double GetArrival(double arrival)
@@ -195,12 +195,13 @@ void Initialize()
     event[0].t = 0; /* In modo che posso avere una nuova replica */
 }
 
-double transient(double t_arresto)
+double transient(double t_arresto, long seed)
+// double transient(double t_arresto)
 {
     Initialize();
 
-    // GetSeed(&seed);
-    // printf("seed iniziale: %ld\n", seed); //print the state of generator
+    GetSeed(&seed);
+    printf("seed iniziale: %ld\n", seed); //print the state of generator
 
     STOP = t_arresto;                    // stopping time
     clock.current = START;               // set the clock
@@ -220,7 +221,7 @@ double transient(double t_arresto)
         clock.current = clock.next;
         if (e == 0)
         {
-            // Process an Arrival
+            /* Process an Arrival */
             arrivals++;
 
             double rnd = Random(); // Detect where it comes
@@ -255,7 +256,7 @@ double transient(double t_arresto)
         }
         else
         {
-            // Process a Departure (e indicates server number)
+            /* Process a Departure (e indicates server number) */
             ProcessDeparture(e);
         }
     }
@@ -266,8 +267,8 @@ double transient(double t_arresto)
                           4 +
                       area[4] / statistics[5].served;
 
-    // GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
-    // printf("seed finale: %ld\n\n", seed);
+    GetSeed(&seed); //ogni volta che eseguo getSeed, ottengo lo stato del generatore
+    printf("seed finale: %ld\n\n", seed);
 
     return (avg_wait);
 }
@@ -277,7 +278,7 @@ int main()
     double t_arresto = 105; //210; //410; //820; //1640; //3280; //6560; //13110;
     long seed = 123456789;
     double response;
-    FILE *file = fopen("file.txt", "w+");
+    FILE *file = fopen("fileModifica.txt", "w+");
     if (file == NULL)
     {
         printf("Error");
@@ -289,7 +290,8 @@ int main()
         /* ------------------------------------------------------------------------ *
          * Replications loop                                                        *
          * ------------------------------------------------------------------------ */
-        response = transient(t_arresto);
+        response = transient(t_arresto, seed);
+        // response = transient(t_arresto);
         fprintf(file, "%f\n", response);
         fflush(file);
     }
