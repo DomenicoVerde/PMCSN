@@ -219,7 +219,7 @@ int NextEvent(event_list event)
 int main(void)
 {
 
-    for (int f = 1; f <= 10; f++)
+    for (int f = 1; f <= 10; f++) // The simulation has been repeated using 10 different streams
     {
 
         int departures_batch = 0;
