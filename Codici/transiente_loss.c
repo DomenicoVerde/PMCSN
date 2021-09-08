@@ -20,7 +20,7 @@
 #define INFINITE (30000000.0)
 #define SERVERS 5
 #define LAMBDA 10
-#define ALPHA 0.5   //shape parameter of BP Distribution (0,5 - 1,5)
+#define ALPHA 1.5   //shape parameter of BP Distribution (0,5 - 1,5)
 #define CAPACITY 10 // Max queue capacity
 
 /* list where the next events are stored */
@@ -289,7 +289,7 @@ double transient(double t_arresto)
 
 int main()
 {
-    double t_arresto = 105; //210; //410; //820; //1640; //3280; //6560; //13110;
+    double t_arresto = 13110; //210; //410; //820; //1640; //3280; //6560; //13110;
     long seed = 123456789;
     double response;
     FILE *file = fopen("file.txt", "w+");
@@ -299,7 +299,7 @@ int main()
         return 0;
     }
     PlantSeeds(seed); // initialize plantSeeds out of the replication cycle
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 1000; i++)
     {
         /* ----------------------------------------------------------------------- *
          * Replications loop                                                       *
