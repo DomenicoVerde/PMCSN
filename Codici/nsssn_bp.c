@@ -16,8 +16,8 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "rngs.h"               /* the multi-stream generator           */
-#include "rvgs.h"               /* random variate generators            */
+#include "rngs.h" /* the multi-stream generator           */
+#include "rvgs.h" /* random variate generators            */
 #include <unistd.h>
 #include <stdbool.h>
 
@@ -25,10 +25,10 @@
 #define STOP 30000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 5               /* Traffic flow rate                    */
-#define ALPHA 0.5               /* Shape Parameter of BP Distribution   */
+#define LAMBDA 5  /* Traffic flow rate                    */
+#define ALPHA 0.5 /* Shape Parameter of BP Distribution   */
 
-
+// list where the next events are stored
 typedef struct
 {
     double t; // next event time
@@ -44,17 +44,17 @@ typedef struct
 
 // Output Statistics
 typedef struct
-{                   // aggregated sums of:       
-    double service;     //   service times                    
-    long served;        //   number of served jobs          
-    long arrives;       //   arrives in the node             
+{                   // aggregated sums of:
+    double service; //   service times
+    long served;    //   number of served jobs
+    long arrives;   //   arrives in the node
 
 } sum[SERVERS + 1];
 
 long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
-long arrivals = 0;
-long departures = 0;
-double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0}; 
+long arrivals = 0;                      // number of arrivals
+long departures = 0;                    // number of departures
+double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
 
 //Output Statistics Struct
 sum statistics;
@@ -67,9 +67,9 @@ t clock;
 
 double GetArrival()
 {
-/* -------------------------------------------------------------------------- * 
- * generate the next arrival time, with rate LAMBDA                           *
- * -------------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------- * 
+    * generate the next arrival time, with rate LAMBDA                           *
+    * -------------------------------------------------------------------------- */
     static double arrival = START;
 
     SelectStream(0);
@@ -79,27 +79,27 @@ double GetArrival()
 
 double GetService_AP()
 {
-/* -------------------------------------------------------------------------- * 
- * generate the next service time for the access points                       *
- * -------------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------- * 
+     * generate the next service time for the access points                       *
+     * -------------------------------------------------------------------------- */
     SelectStream(1);
     return BoundedPareto(ALPHA, 0.3756009615, 8.756197416);
 }
 
 double GetService_Switch()
 {
-/* -------------------------------------------------------------------------- * 
- * generate the next service time for the switch                              *
- * -------------------------------------------------------------------------- */
-    SelectStream(2); 
+    /* -------------------------------------------------------------------------- * 
+    * generate the next service time for the switch                              *
+    * -------------------------------------------------------------------------- */
+    SelectStream(2);
     return BoundedPareto(ALPHA, 0.002709302035, 0.0631606037);
 }
 
 void ProcessArrival(int index)
 {
-/* -------------------------------------------------------------------------- * 
- * function that processes arrivals                                           *
- * -------------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------- * 
+    * function that processes arrivals                                           *
+    * -------------------------------------------------------------------------- */
     double service_time = 0.0;
     if (number[index - 1] == 0)
     { // if the queue is empty, serve it immediately
@@ -122,9 +122,9 @@ void ProcessArrival(int index)
 
 void ProcessDeparture(int index)
 {
-/* -------------------------------------------------------------------------- * 
- * function that processes departures                                         *
- * -------------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------- * 
+     * function that processes departures                                         *
+     * -------------------------------------------------------------------------- */
     double service_time = 0.0;
     if (index < 5)
     {
@@ -161,9 +161,9 @@ void ProcessDeparture(int index)
 
 bool empty_queues()
 {
-/*-------------------------------------------------------------------------- *
- * return false if there are jobs in the queues else retrun true             *
- * ------------------------------------------------------------------------- */
+    /*-------------------------------------------------------------------------- *
+     * return false if there are jobs in the queues else retrun true             *
+     *-------------------------------------------------------------------------- */
     for (int i = 0; i < SERVERS; i++)
     {
         if (number[i] != 0)
@@ -176,9 +176,9 @@ bool empty_queues()
 
 int NextEvent(event_list event)
 {
-/* -------------------------------------------------------------------------- *
- * return the index of the next event type                                    *
- * -------------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------- *
+     * return the index of the next event type                                    *
+     * -------------------------------------------------------------------------- */
     int e;
     int i = 0;
 
@@ -194,7 +194,6 @@ int NextEvent(event_list event)
     }
     return (e);
 }
-
 
 int main(void)
 {
@@ -212,12 +211,11 @@ int main(void)
     }
 
     int e = 0;
-    //int current_number = 0;
     while ((event[0].t < STOP) || !empty_queues())
     {
         e = NextEvent(event);
         clock.next = event[e].t;
-        for (int j=0; j<SERVERS; j++) 
+        for (int j = 0; j < SERVERS; j++)
         {
             area[j] += (clock.next - clock.current) * number[j];
         }
@@ -250,8 +248,8 @@ int main(void)
             {
                 s = 5;
             }
-            
-            statistics[s].arrives++; 
+
+            statistics[s].arrives++;
             ProcessArrival(s);
 
             event[0].t = GetArrival(); // Scheduling Next Arrival
@@ -271,17 +269,17 @@ int main(void)
     double tot_area = area[0] + area[1] + area[2] + area[3] + area[4];
     printf("Output Statistics (computed using %ld jobs) are:\n\n", departures);
     printf("1) Global Statistics\n");
-    printf("  avg interarrival time = %6.6f\n", event[0].t/arrivals);
-    printf("  avg waiting time = %6.6f\n", tot_area/departures);
+    printf("  avg interarrival time = %6.6f\n", event[0].t / arrivals);
+    printf("  avg waiting time = %6.6f\n", tot_area / departures);
     printf("  avg number of jobs in the network = %6.2f\n",
-           tot_area/clock.current);
+           tot_area / clock.current);
 
     for (int s = 1; s <= SERVERS; s++)
     {
         tot_area -= statistics[s].service;
     }
-    printf("  avg delay = %6.6f\n", tot_area/departures);
-    printf("  avg number of jobs in queues = %6.6f\n", tot_area/clock.current);
+    printf("  avg delay = %6.6f\n", tot_area / departures);
+    printf("  avg number of jobs in queues = %6.6f\n", tot_area / clock.current);
     printf("\n");
     printf("\n");
 
@@ -295,22 +293,23 @@ int main(void)
         {
             printf("   AP-");
         }
-        else 
+        else
         {
             printf("   Sw-");
         }
         printf("%d %13.6f %13.6f %13.6f %13.6f %13.6f\n", s,
                statistics[s].service / clock.current,
                statistics[s].service / statistics[s].served,
-               (double) statistics[s].arrives / arrivals,
-               area[s-1] / statistics[s].served,
-               (area[s-1] - statistics[s].service) / statistics[s].served);
+               (double)statistics[s].arrives / arrivals,
+               area[s - 1] / statistics[s].served,
+               (area[s - 1] - statistics[s].service) / statistics[s].served);
     }
     double avg_wait = (area[0] / statistics[1].served +
-                       area[1] / statistics[2].served + 
-                       area[2] / statistics[3].served + 
-                       area[3] / statistics[4].served ) / 4 +
-                       area[4] / statistics[5].served;
+                       area[1] / statistics[2].served +
+                       area[2] / statistics[3].served +
+                       area[3] / statistics[4].served) /
+                          4 +
+                      area[4] / statistics[5].served;
     printf("\n");
     printf("  Average Waiting Time of Users: %13.6f\n", avg_wait);
 

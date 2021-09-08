@@ -16,8 +16,8 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "rngs.h"               /* the multi-stream generator           */
-#include "rvgs.h"               /* random variate generators            */
+#include "rngs.h" /* the multi-stream generator           */
+#include "rvgs.h" /* random variate generators            */
 #include <unistd.h>
 #include <stdbool.h>
 
@@ -25,12 +25,13 @@
 #define STOP 30000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 5
-#define LAMBDA 5                /* Traffic flow rate                    */
-#define MU_AP 0.332800          /* Service rate of APs                  */
-#define MU_SWITCH 46.137344     /* Service rate of Switch               */
-#define RUN_TESTS_AND_CHECKS 1  /* Set this to 1 if you want to verify
-                                   and validate the model               */
+#define LAMBDA 5               /* Traffic flow rate                    */
+#define MU_AP 0.332800         /* Service rate of APs                  */
+#define MU_SWITCH 46.137344    /* Service rate of Switch               */
+#define RUN_TESTS_AND_CHECKS 1 /* Set this to 1 if you want to verify \
+                                  and validate the model               */
 
+// list where the next events are stored
 typedef struct
 {
     double t; // next event time
@@ -46,17 +47,17 @@ typedef struct
 
 // Output Statistics
 typedef struct
-{                   // aggregated sums of:       
-    double service;     //   service times                    
-    long served;        //   number of served jobs          
-    long arrives;       //   arrives in the node             
+{                   // aggregated sums of:
+    double service; //   service times
+    long served;    //   number of served jobs
+    long arrives;   //   arrives in the node
 
 } sum[SERVERS + 1];
 
 long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
-long arrivals = 0;
-long departures = 0;
-double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0}; 
+long arrivals = 0;                      // number of arrivals
+long departures = 0;                    // number of departures
+double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
 
 //Output Statistics Struct
 sum statistics;
@@ -69,7 +70,7 @@ t clock;
 
 double E_TQ(double lambda, double mu)
 {
-/* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- * 
  * function to calculate E(Tq): mu represents the service rate                *
  * while lambda represents the traffic input fl                               *
  * (This is valid only if both are Exponential)                               *
@@ -80,17 +81,17 @@ double E_TQ(double lambda, double mu)
 
 double E_TS(double lambda, double mu)
 {
-/* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- * 
  * function to calculate E(Ts): mu represents the service rate                *
  * while lambda represents the traffic input flow                             *
  * (This is valid only if both are Exponential)                               *
  * -------------------------------------------------------------------------- */
-    return (1/(mu-lambda));
+    return (1 / (mu - lambda));
 }
 
 double GetArrival()
 {
-/* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- * 
  * generate the next arrival time, with rate LAMBDA                           *
  * -------------------------------------------------------------------------- */
     static double arrival = START;
@@ -102,25 +103,25 @@ double GetArrival()
 
 double GetService_AP()
 {
-/* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- * 
  * generate the next service time for the access points                       *
  * -------------------------------------------------------------------------- */
     SelectStream(1);
-    return (Exponential(1.0 / MU_AP)); 
+    return (Exponential(1.0 / MU_AP));
 }
 
 double GetService_Switch()
 {
-/* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- * 
  * generate the next service time for the switch                              *
  * -------------------------------------------------------------------------- */
     SelectStream(2);
-    return (Exponential(1.0 / MU_SWITCH)); 
+    return (Exponential(1.0 / MU_SWITCH));
 }
 
 void ProcessArrival(int index)
 {
-/* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- * 
  * function that processes arrivals                                           *
  * -------------------------------------------------------------------------- */
     double service_time = 0.0;
@@ -145,7 +146,7 @@ void ProcessArrival(int index)
 
 void ProcessDeparture(int index)
 {
-/* -------------------------------------------------------------------------- * 
+    /* -------------------------------------------------------------------------- * 
  * function that processes departures                                         *
  * -------------------------------------------------------------------------- */
     double service_time = 0.0;
@@ -184,7 +185,7 @@ void ProcessDeparture(int index)
 
 bool empty_queues()
 {
-/*-------------------------------------------------------------------------- *
+    /*-------------------------------------------------------------------------- *
  * return false if there are jobs in the queues else retrun true             *
  * ------------------------------------------------------------------------- */
     for (int i = 0; i < SERVERS; i++)
@@ -199,7 +200,7 @@ bool empty_queues()
 
 int NextEvent(event_list event)
 {
-/* -------------------------------------------------------------------------- *
+    /* -------------------------------------------------------------------------- *
  * return the index of the next event type                                    *
  * -------------------------------------------------------------------------- */
     int e;
@@ -218,13 +219,11 @@ int NextEvent(event_list event)
     return (e);
 }
 
-
-
 /*---------------------------------Tests--------------------------------------*/
 
 bool TestProcessArrival(int index, bool first)
 {
-/* -------------------------------------------------------------------------- *
+    /* -------------------------------------------------------------------------- *
  * Function to verify the correct implementation of ProcessArrival().         *     
  * This simulates the system in the case there is 1 job in service            *
  * (and the next will be enqueued), and in the case there is no job in        *
@@ -237,7 +236,7 @@ bool TestProcessArrival(int index, bool first)
         statistics[index].served = 1;
         number[index - 1] = 1;
         ProcessArrival(index);
-        if (number[index - 1] == 2 && statistics[index].served == 1 && 
+        if (number[index - 1] == 2 && statistics[index].served == 1 &&
             event[index].t == clock.next)
         {
             return true;
@@ -254,7 +253,7 @@ bool TestProcessArrival(int index, bool first)
         statistics[index].served = 0;
         number[index - 1] = 0;
         ProcessArrival(index);
-        if (number[index - 1] == 1 && statistics[index].served == 1 && 
+        if (number[index - 1] == 1 && statistics[index].served == 1 &&
             event[index].t > clock.next)
         {
             return true;
@@ -268,7 +267,7 @@ bool TestProcessArrival(int index, bool first)
 
 bool TestProcessDeparture(int index)
 {
-/* -------------------------------------------------------------------------- *
+    /* -------------------------------------------------------------------------- *
  * Function to verify the correct implementation of ProcessDeparture().       * 
  * This simulates the system in the case there are 2 job in the system        *
  * and there is a departure from that service node.                           *  
@@ -278,7 +277,7 @@ bool TestProcessDeparture(int index)
     number[index - 1] = 2;
     statistics[index].served = 1;
     ProcessDeparture(index);
-    if (number[index - 1] == 1 && event[index].t > clock.next && 
+    if (number[index - 1] == 1 && event[index].t > clock.next &&
         statistics[index].served == 2)
     {
         return true;
@@ -291,7 +290,7 @@ bool TestProcessDeparture(int index)
 
 bool TestEmptyQueue()
 {
-/* -------------------------------------------------------------------------- *
+    /* -------------------------------------------------------------------------- *
  * Function to verify the correct implementation of empty_queues().           *
  * This simulates the case there are some jobs in the system.                 *
  * -------------------------------------------------------------------------- */
@@ -313,8 +312,6 @@ bool TestEmptyQueue()
 
 /*-----------------------------End of Tests-----------------------------------*/
 
-
-
 int main(void)
 {
     // Init
@@ -335,7 +332,7 @@ int main(void)
     {
         e = NextEvent(event);
         clock.next = event[e].t;
-        for (int j=0; j<SERVERS; j++) 
+        for (int j = 0; j < SERVERS; j++)
         {
             area[j] += (clock.next - clock.current) * number[j];
         }
@@ -368,7 +365,7 @@ int main(void)
             {
                 s = 5;
             }
-            statistics[s].arrives++; 
+            statistics[s].arrives++;
             ProcessArrival(s);
 
             event[0].t = GetArrival(); // Scheduling Next Arrival
@@ -388,17 +385,17 @@ int main(void)
     double tot_area = area[0] + area[1] + area[2] + area[3] + area[4];
     printf("Output Statistics (computed using %ld jobs) are:\n\n", departures);
     printf("1) Global Statistics\n");
-    printf("  avg interarrival time = %6.6f\n", event[0].t/arrivals);
-    printf("  avg waiting time = %6.6f\n", tot_area/departures);
+    printf("  avg interarrival time = %6.6f\n", event[0].t / arrivals);
+    printf("  avg waiting time = %6.6f\n", tot_area / departures);
     printf("  avg number of jobs in the network = %6.2f\n",
-           tot_area/clock.current);
+           tot_area / clock.current);
 
     for (int s = 1; s <= SERVERS; s++)
     {
         tot_area -= statistics[s].service;
     }
-    printf("  avg delay = %6.6f\n", tot_area/departures);
-    printf("  avg number of jobs in queues = %6.6f\n", tot_area/clock.current);
+    printf("  avg delay = %6.6f\n", tot_area / departures);
+    printf("  avg number of jobs in queues = %6.6f\n", tot_area / clock.current);
     printf("\n");
     printf("\n");
 
@@ -412,79 +409,79 @@ int main(void)
         {
             printf("   AP-");
         }
-        else 
+        else
         {
             printf("   Sw-");
         }
         printf("%d %13.6f %13.6f %13.6f %13.6f %13.6f\n", s,
                statistics[s].service / clock.current,
                statistics[s].service / statistics[s].served,
-               (double) statistics[s].arrives / arrivals,
-               area[s-1] / statistics[s].served,
-               (area[s-1] - statistics[s].service) / statistics[s].served);
+               (double)statistics[s].arrives / arrivals,
+               area[s - 1] / statistics[s].served,
+               (area[s - 1] - statistics[s].service) / statistics[s].served);
     }
     double avg_wait = (area[0] / statistics[1].served +
-                       area[1] / statistics[2].served + 
-                       area[2] / statistics[3].served + 
-                       area[3] / statistics[4].served ) / 4 +
-                       area[4] / statistics[5].served;
+                       area[1] / statistics[2].served +
+                       area[2] / statistics[3].served +
+                       area[3] / statistics[4].served) /
+                          4 +
+                      area[4] / statistics[5].served;
     printf("\n");
     printf("  Average Waiting Time of Users: %13.6f\n", avg_wait);
 
-    
     if (RUN_TESTS_AND_CHECKS)
     {
         printf("Now, we do some tests to verify and validate the model\n");
         printf("If you see some errors, there is something that should ");
         printf("be wrong and you need to check it.\n");
-        
+
         printf("Test 1: function empty_queues() ");
         if (TestEmptyQueue())
             printf("OK\n");
-        else 
+        else
             printf("Error!!!\n");
-        
+
         printf("Test 2: function ProcessDeparture() ");
-        if (TestProcessDeparture(1)) 
+        if (TestProcessDeparture(1))
             printf("OK\n");
-        else 
+        else
             printf("Error!!!\n");
-        
+
         printf("Test 3: function ProcessArrival() ");
-        if (TestProcessArrival(1,1) && TestProcessArrival(1,0)) 
+        if (TestProcessArrival(1, 1) && TestProcessArrival(1, 0))
             printf("OK\n");
-        else 
+        else
             printf("Error!!!\n");
 
         printf("Consistency Check 1: Arrivals = Departures ");
-        if (arrivals == departures) 
+        if (arrivals == departures)
             printf("OK\n");
-        else 
+        else
             printf("Error!!!\n");
 
         printf("\n");
         printf("\n");
         printf("3) Theorical Values (Exponential arrives/service times only)\n");
         printf("  Utilization of APs: %f\n", (1.0 / 20) * LAMBDA / MU_AP);
-        printf("  Utilization of Switch: %f\n", LAMBDA/MU_SWITCH);
-        
-        double Etq_ap = E_TQ((1 / 20.0)*LAMBDA, MU_AP);
+        printf("  Utilization of Switch: %f\n", LAMBDA / MU_SWITCH);
+
+        double Etq_ap = E_TQ((1 / 20.0) * LAMBDA, MU_AP);
         double Etq_sw = E_TQ(LAMBDA, MU_SWITCH);
         printf("  E(Tq)_AP: %10.6f\n", Etq_ap);
         printf("  E(Tq)_SW: %10.6f\n", Etq_sw);
-        
-        double Ets_ap = E_TS((1 / 20.0)*LAMBDA, MU_AP);
+
+        double Ets_ap = E_TS((1 / 20.0) * LAMBDA, MU_AP);
         double Ets_sw = E_TS(LAMBDA, MU_SWITCH);
         printf("  E(Ts)_AP: %10.6f\n", Ets_ap);
         printf("  E(Ts)_SW: %10.6f\n", Ets_sw);
 
-        double Ets = Ets_ap * 4/20.0 + Ets_sw * 4/5.0;
-        double Etq = Etq_ap * 4/20.0 + Etq_sw * 4/5.0;
+        double Ets = Ets_ap * 4 / 20.0 + Ets_sw * 4 / 5.0;
+        double Etq = Etq_ap * 4 / 20.0 + Etq_sw * 4 / 5.0;
         printf("  E(Tq):    %10.6f\n", Etq);
         printf("  E(Ts):    %10.6f\n", Ets);
         printf("  E(Nq):    %10.6f\n", Etq * LAMBDA);
         printf("  E(Ns):    %10.6f\n", Ets * LAMBDA);
-        
+
         printf("\n");
         printf("  E(Ts)_User:    %10.6f\n", Ets_ap + Ets_sw);
     }

@@ -20,52 +20,43 @@
 #define INFINITE (30000000.0) //terminal (close the door) time
 #define SERVERS 5             //number of servers
 #define LAMBDA 10             //traffic flow rate
-#define ALPHA 0.5             //shape parameter of BP Distribution (0,5 - 1,5)
+#define ALPHA 0.5             //shape parameter of BP Distribution
 
-/* list where the next events are stored */
 typedef struct
 {
-    double t; // next event time
-    int x;    // status: 0 (off) or 1 (on)
+    double t;
+    int x;
 } event_list[SERVERS + 1];
 
-/* Clock Time */
 typedef struct
 {
-    double current; // current time
-    double next;    // next-event time
+    double current;
+    double next;
 } t;
 
-/* Output Statistics */
 typedef struct
-{                   // aggregated sums of:
-    double service; //   service times
-    long served;    //   number of served jobs
-    long arrives;   //   arrives in the node
+{
+    double service;
+    long served;
+    long arrives;
 
 } sum[SERVERS + 1];
 
-long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
-long arrivals = 0;                      // statistics to store arrivals
-long departures = 0;                    // statistics to store departures
+long number[SERVERS] = {0, 0, 0, 0, 0};
+long arrivals = 0;
+long departures = 0;
 double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
 double STOP = 0;
 double arrival = START;
 
-/* Output Statistics Struct */
 sum statistics;
 
-/* Event List Management */
 event_list event;
 
-/* Clock Time */
 t clock;
 
 double GetArrival(double arrival)
 {
-    /* -------------------------------------------------------------------------- *
-     * generate the next arrival time, with rate LAMBDA                           *
-     * -------------------------------------------------------------------------- */
     SelectStream(0);
     arrival += Exponential(1.0 / LAMBDA);
     return (arrival);
@@ -73,30 +64,21 @@ double GetArrival(double arrival)
 
 double GetService_AP()
 {
-    /* -------------------------------------------------------------------------- * 
-     * generate the next service time for the access points                       *
-     * -------------------------------------------------------------------------- */
     SelectStream(1);
     return BoundedPareto(ALPHA, 0.3756009615, 8.756197416);
 }
 
 double GetService_Switch()
 {
-    /* -------------------------------------------------------------------------- * 
-     * generate the next service time for the switch                              *
-     * -------------------------------------------------------------------------- */
     SelectStream(2);
     return BoundedPareto(ALPHA, 0.002709302035, 0.0631606037);
 }
 
 void ProcessArrival(int index)
 {
-    /* -------------------------------------------------------------------------- * 
-     * function that processes arrivals                                           *
-     * -------------------------------------------------------------------------- */
     double service_time = 0.0;
     if (number[index - 1] == 0)
-    { // if the queue is empty, serve it immediately
+    {
         if (index == 5)
         {
             service_time = GetService_Switch();
@@ -116,23 +98,20 @@ void ProcessArrival(int index)
 
 void ProcessDeparture(int index)
 {
-    /* -------------------------------------------------------------------------- * 
-     * function that processes departures                                         *
-     * -------------------------------------------------------------------------- */
     double service_time = 0.0;
     if (index < 5)
     {
-        ProcessArrival(5); // if it comes at APs send the job to the switch
+        ProcessArrival(5);
     }
     else
     {
-        departures++; // else the job leaves the system
+        departures++;
     }
 
     number[index - 1]--;
 
     if (number[index - 1] > 0)
-    { // schedule next departure from this node
+    {
         if (index == 5)
         {
             service_time = GetService_Switch();
@@ -155,18 +134,15 @@ void ProcessDeparture(int index)
 
 int NextEvent(event_list event)
 {
-    /* -------------------------------------------------------------------------- *
-     * return the index of the next event type                                    *
-     * -------------------------------------------------------------------------- */
     int e;
     int i = 0;
 
-    while (event[i].x == 0) // find the index of the first active event
+    while (event[i].x == 0)
         i++;
 
     e = i;
     while (i < SERVERS + 1)
-    { // find the most imminent event
+    {
         i++;
         if ((event[i].x == 1) && (event[i].t < event[e].t))
             e = i;
@@ -177,7 +153,7 @@ int NextEvent(event_list event)
 void Initialize()
 {
     /* ------------------------------------------------------------------------ *
-     * all system statistics are initialized                                    *
+     * Function to initialize all system statistics                             *                                     *
      * ------------------------------------------------------------------------ */
     for (int i = 0; i < SERVERS; i++)
     {
@@ -193,7 +169,7 @@ void Initialize()
     }
     arrivals = 0;
     departures = 0;
-    event[0].t = 0; /* In modo che posso avere una nuova replica */
+    event[0].t = 0;
 }
 
 // double transient(double t_arresto, long seed)
