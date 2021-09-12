@@ -21,15 +21,16 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#define START 0.0               /* initial time                         */
-#define STOP 30000.0            /* terminal (close the door) time       */
-#define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
-#define SERVERS 5
-#define LAMBDA 5               /* Traffic flow rate                    */
-#define MU_AP 0.332800         /* Service rate of APs                  */
-#define MU_SWITCH 46.137344    /* Service rate of Switch               */
-#define RUN_TESTS_AND_CHECKS 1 /* Set this to 1 if you want to verify \
-                                  and validate the model               */
+#define START 0.0               /* initial time                             */
+#define STOP 30000.0            /* terminal (close the door) time           */
+#define INFINITE (100.0 * STOP) /* must be much larger than STOP            */
+
+#define SERVERS 6               // if you change this, check rows 58,61,349
+#define LAMBDA 5                /* Traffic flow rate                        */
+#define MU_AP 0.332800          /* Service rate of APs                      */
+#define MU_SWITCH 46.137344     /* Service rate of Switch                   */
+#define RUN_TESTS 0             /* Set this to 1 if you want to
+                                   execute tests and print theorical values */
 
 // list where the next events are stored
 typedef struct
@@ -54,10 +55,10 @@ typedef struct
 
 } sum[SERVERS + 1];
 
-long number[SERVERS] = {0, 0, 0, 0, 0}; // number of jobs in the node
+long number[SERVERS] = {0, 0, 0, 0, 0,0}; // number of jobs in the node
 long arrivals = 0;                      // number of arrivals
 long departures = 0;                    // number of departures
-double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0};
+double area[SERVERS] = {0.0, 0.0, 0.0, 0.0, 0.0,0.0};
 
 //Output Statistics Struct
 sum statistics;
@@ -70,7 +71,7 @@ t clock;
 
 double E_TQ(double lambda, double mu)
 {
-    /* -------------------------------------------------------------------------- * 
+/* -------------------------------------------------------------------------- * 
  * function to calculate E(Tq): mu represents the service rate                *
  * while lambda represents the traffic input fl                               *
  * (This is valid only if both are Exponential)                               *
@@ -81,7 +82,7 @@ double E_TQ(double lambda, double mu)
 
 double E_TS(double lambda, double mu)
 {
-    /* -------------------------------------------------------------------------- * 
+/* -------------------------------------------------------------------------- * 
  * function to calculate E(Ts): mu represents the service rate                *
  * while lambda represents the traffic input flow                             *
  * (This is valid only if both are Exponential)                               *
@@ -91,7 +92,7 @@ double E_TS(double lambda, double mu)
 
 double GetArrival()
 {
-    /* -------------------------------------------------------------------------- * 
+/* -------------------------------------------------------------------------- * 
  * generate the next arrival time, with rate LAMBDA                           *
  * -------------------------------------------------------------------------- */
     static double arrival = START;
@@ -103,7 +104,7 @@ double GetArrival()
 
 double GetService_AP()
 {
-    /* -------------------------------------------------------------------------- * 
+/* -------------------------------------------------------------------------- * 
  * generate the next service time for the access points                       *
  * -------------------------------------------------------------------------- */
     SelectStream(1);
@@ -121,13 +122,13 @@ double GetService_Switch()
 
 void ProcessArrival(int index)
 {
-    /* -------------------------------------------------------------------------- * 
+/* -------------------------------------------------------------------------- * 
  * function that processes arrivals                                           *
  * -------------------------------------------------------------------------- */
     double service_time = 0.0;
     if (number[index - 1] == 0)
     { // if the queue is empty, serve it immediately
-        if (index == 5)
+        if (index == SERVERS)
         {
             service_time = GetService_Switch();
         }
@@ -146,13 +147,13 @@ void ProcessArrival(int index)
 
 void ProcessDeparture(int index)
 {
-    /* -------------------------------------------------------------------------- * 
+/* -------------------------------------------------------------------------- * 
  * function that processes departures                                         *
  * -------------------------------------------------------------------------- */
     double service_time = 0.0;
-    if (index < 5)
+    if (index < SERVERS)
     {
-        ProcessArrival(5); // if it comes at APs send the job to the switch
+        ProcessArrival(SERVERS); // if it comes at APs send the job to the switch
     }
     else
     {
@@ -163,7 +164,7 @@ void ProcessDeparture(int index)
 
     if (number[index - 1] > 0)
     { // schedule next departure from this node
-        if (index == 5)
+        if (index == SERVERS)
         {
             service_time = GetService_Switch();
         }
@@ -185,7 +186,7 @@ void ProcessDeparture(int index)
 
 bool empty_queues()
 {
-    /*-------------------------------------------------------------------------- *
+/*-------------------------------------------------------------------------- *
  * return false if there are jobs in the queues else retrun true             *
  * ------------------------------------------------------------------------- */
     for (int i = 0; i < SERVERS; i++)
@@ -200,7 +201,7 @@ bool empty_queues()
 
 int NextEvent(event_list event)
 {
-    /* -------------------------------------------------------------------------- *
+/* -------------------------------------------------------------------------- *
  * return the index of the next event type                                    *
  * -------------------------------------------------------------------------- */
     int e;
@@ -223,7 +224,7 @@ int NextEvent(event_list event)
 
 bool TestProcessArrival(int index, bool first)
 {
-    /* -------------------------------------------------------------------------- *
+/* -------------------------------------------------------------------------- *
  * Function to verify the correct implementation of ProcessArrival().         *     
  * This simulates the system in the case there is 1 job in service            *
  * (and the next will be enqueued), and in the case there is no job in        *
@@ -267,7 +268,7 @@ bool TestProcessArrival(int index, bool first)
 
 bool TestProcessDeparture(int index)
 {
-    /* -------------------------------------------------------------------------- *
+/* -------------------------------------------------------------------------- *
  * Function to verify the correct implementation of ProcessDeparture().       * 
  * This simulates the system in the case there are 2 job in the system        *
  * and there is a departure from that service node.                           *  
@@ -290,7 +291,7 @@ bool TestProcessDeparture(int index)
 
 bool TestEmptyQueue()
 {
-    /* -------------------------------------------------------------------------- *
+/* -------------------------------------------------------------------------- *
  * Function to verify the correct implementation of empty_queues().           *
  * This simulates the case there are some jobs in the system.                 *
  * -------------------------------------------------------------------------- */
@@ -345,25 +346,27 @@ int main(void)
 
             double rnd = Random(); // Detect where it comes
             int s;
-            if (rnd > 0 && rnd <= 1.0 / 20)
+            if (rnd > 0 && rnd <= 1.0 / 25)
             {
                 s = 1;
             }
-            else if (rnd > 1.0 / 20 && rnd <= 2.0 / 20)
+            else if (rnd > 1.0 / 25 && rnd <= 2.0 / 25)
             {
                 s = 2;
             }
-            else if (rnd > 2.0 / 20 && rnd <= 3.0 / 20)
+            else if (rnd > 2.0 / 25 && rnd <= 3.0 / 25)
             {
                 s = 3;
             }
-            else if (rnd > 3.0 / 20 && rnd <= 4.0 / 20)
+            else if (rnd > 3.0 / 25 && rnd <= 4.0 / 25)
             {
                 s = 4;
             }
-            else
+            else if (rnd > 4.0 / 25 && rnd <= 5.0 / 25)
             {
                 s = 5;
+            } else {
+                s = 6;
             }
             statistics[s].arrives++;
             ProcessArrival(s);
@@ -429,7 +432,7 @@ int main(void)
     printf("\n");
     printf("  Average Waiting Time of Users: %13.6f\n", avg_wait);
 
-    if (RUN_TESTS_AND_CHECKS)
+    if (RUN_TESTS)
     {
         printf("Now, we do some tests to verify and validate the model\n");
         printf("If you see some errors, there is something that should ");
@@ -453,7 +456,7 @@ int main(void)
         else
             printf("Error!!!\n");
 
-        printf("Consistency Check 1: Arrivals = Departures ");
+        printf("Check 1: Arrivals = Departures ");
         if (arrivals == departures)
             printf("OK\n");
         else
